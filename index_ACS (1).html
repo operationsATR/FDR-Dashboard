@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATR — ACS Shift Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#AACD61;--green-dark:#8fb048;--green-bg:#f3f9e8;
+  --teal:#4B929B;--teal-bg:#eef6f7;
+  --grey:#515252;
+  --melon:#E0694A;--melon-bg:#fef0eb;
+  --yellow:#F6CD61;--yellow-bg:#fffbeb;
+  --muttro:#4B618C;--muttro-bg:#eef0f7;
+  --bg:#F5F4F0;--card:#fff;--border:#e2e0db;
+  --text:#2a2a2a;--text-light:#6b6b6b;
+  --radius:10px;--shadow:0 2px 8px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--grey);}
+.login-card{background:white;border-radius:16px;padding:44px 36px;width:440px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.25);}
+.login-logo{width:60px;height:60px;background:var(--teal);border-radius:14px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:28px;}
+.login-card h1{font-size:20px;font-weight:600;margin-bottom:4px;}
+.login-card p{color:var(--text-light);font-size:13px;margin-bottom:20px;}
+.login-select,.login-input{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:white;margin-bottom:10px;transition:border-color 0.2s;}
+.login-select:focus,.login-input:focus{outline:none;border-color:var(--teal);}
+.picker-label{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);margin-bottom:6px;}
+.picker-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.pick-btn{padding:11px;border:2px solid var(--border);border-radius:8px;background:white;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-light);transition:all 0.15s;}
+.pick-btn:hover{border-color:var(--teal);color:var(--teal);}
+.pick-btn.sel-opening{border-color:#b45309;background:#fffbeb;color:#b45309;}
+.pick-btn.sel-closing{border-color:var(--muttro);background:var(--muttro-bg);color:var(--muttro);}
+.pick-btn.sel-well{border-color:var(--teal);background:var(--teal-bg);color:var(--teal);}
+.pick-btn.sel-quar{border-color:var(--green-dark);background:var(--green-bg);color:var(--green-dark);}
+.login-btn{width:100%;padding:13px;background:var(--teal);border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:white;cursor:pointer;transition:background 0.2s;}
+.login-btn:hover{background:#3d7a82;}
+.login-err{color:var(--melon);font-size:13px;margin-bottom:8px;display:none;}
+.login-note{font-size:11px;color:var(--text-light);margin-top:12px;}
+.login-status{font-size:12px;color:var(--teal);margin-bottom:8px;display:none;}
+
+/* API PROMPT MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:center;justify-content:center;}
+.modal-card{background:white;border-radius:14px;padding:36px 32px;width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+.modal-card h2{font-size:18px;font-weight:600;margin-bottom:8px;}
+.modal-card p{font-size:13px;color:var(--text-light);margin-bottom:20px;line-height:1.5;}
+
+/* HEADER */
+#app{display:none;}
+.header{background:var(--grey);color:white;padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
+.header-left{display:flex;align-items:center;gap:10px;}
+.header-logo{width:30px;height:30px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.header h1{font-size:15px;font-weight:600;}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.header-date{font-size:11px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;}
+.user-badge{background:rgba(255,255,255,0.1);border-radius:20px;padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:5px;}
+.shift-chip{font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;}
+.chip-opening{background:#fffbeb;color:#b45309;}
+.chip-closing{background:var(--muttro-bg);color:var(--muttro);}
+.chip-well{background:var(--teal-bg);color:var(--teal);}
+.chip-quar{background:var(--green-bg);color:var(--green-dark);}
+.chip-sup{background:var(--teal);color:white;}
+.logout-btn{background:none;border:1px solid rgba(255,255,255,0.2);color:white;padding:4px 10px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;}
+.logout-btn:hover{background:rgba(255,255,255,0.1);}
+.sync-dot{font-size:11px;color:rgba(255,255,255,0.45);font-family:'DM Mono',monospace;}
+
+/* NOTIF */
+.notif{position:fixed;top:64px;right:16px;background:var(--grey);color:white;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;display:none;box-shadow:0 4px 16px rgba(0,0,0,0.2);}
+
+/* NAV */
+.nav-tabs{background:white;border-bottom:1px solid var(--border);display:flex;padding:0 16px;position:sticky;top:56px;z-index:150;overflow-x:auto;}
+.nav-tab{padding:11px 16px;font-size:13px;font-weight:600;color:var(--text-light);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif;transition:all 0.15s;white-space:nowrap;}
+.nav-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+
+/* SECTIONS */
+.section{display:none;max-width:1280px;margin:0 auto;padding:16px;}
+.section.active{display:block;}
+
+/* CARDS */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px;}
+.card-header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
+.card-title{font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-light);flex-shrink:0;}
+.card-title .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.card-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.card-body{padding:14px 16px;}
+
+/* BUTTONS */
+.btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;border-radius:7px;padding:6px 13px;cursor:pointer;border:none;transition:all 0.15s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+.btn-primary{background:var(--teal);color:white;}
+.btn-primary:hover{background:#3d7a82;}
+.btn-green{background:var(--green);color:#2a2a2a;}
+.btn-green:hover{background:var(--green-dark);}
+.btn-ghost{background:none;border:1.5px solid var(--border);color:var(--text-light);}
+.btn-ghost:hover{border-color:var(--teal);color:var(--teal);}
+.btn-danger{background:none;border:none;color:var(--border);font-size:15px;cursor:pointer;padding:2px 3px;line-height:1;transition:color 0.15s;}
+.btn-danger:hover{color:var(--melon);}
+
+/* FORMS */
+.f-input,.f-select,.f-textarea{font-family:'DM Sans',sans-serif;font-size:13px;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);background:white;transition:border-color 0.2s;}
+.f-input:focus,.f-select:focus,.f-textarea:focus{outline:none;border-color:var(--teal);}
+.f-textarea{width:100%;resize:vertical;min-height:56px;}
+.f-input{flex:1;min-width:70px;}
+.f-select{cursor:pointer;}
+.form-row{display:flex;gap:7px;margin-bottom:7px;flex-wrap:wrap;align-items:center;}
+
+/* BADGE */
+.badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:2px 7px;border-radius:4px;flex-shrink:0;}
+.badge-important{background:var(--melon-bg);color:var(--melon);}
+.badge-info{background:var(--teal-bg);color:var(--teal);}
+.count-badge{background:var(--melon);color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;}
+
+/* EMPTY */
+.empty{text-align:center;padding:24px 14px;color:var(--text-light);font-size:13px;}
+.empty .icon{font-size:24px;margin-bottom:5px;}
+
+/* UPDATES */
+.update-item{padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:9px;align-items:flex-start;}
+.update-item:last-child{border-bottom:none;}
+.unread-dot{width:7px;height:7px;background:var(--melon);border-radius:50%;flex-shrink:0;margin-top:5px;}
+.unread-dot.seen{background:transparent;}
+.update-content{flex:1;min-width:0;}
+.update-text{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+.update-meta{display:flex;gap:7px;margin-top:2px;flex-wrap:wrap;}
+.update-author{font-size:11px;color:var(--text-light);font-family:'DM Mono',monospace;}
+.update-time{font-size:11px;color:var(--text-light);}
+.read-btn{flex-shrink:0;background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;font-family:'DM Sans',sans-serif;color:var(--text-light);cursor:pointer;transition:all 0.15s;}
+.read-btn:hover,.read-btn.done{background:var(--green-bg);border-color:var(--green);color:var(--green-dark);}
+
+/* REMINDERS */
+.reminder-item{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);}
+.reminder-item:last-child{border-bottom:none;}
+.reminder-text{flex:1;font-size:13px;line-height:1.4;}
+.reminder-meta{font-size:10px;color:var(--text-light);margin-top:2px;font-family:'DM Mono',monospace;}
+.reminder-pin{font-size:18px;flex-shrink:0;}
+
+/* CHECKLIST */
+.progress-wrap{padding:9px 16px 3px;}
+.progress-label{font-size:11px;color:var(--text-light);display:flex;justify-content:space-between;margin-bottom:4px;}
+.progress-bg{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.35s ease;background:var(--teal);}
+.cl-body{padding:8px 16px 4px;}
+.cl-item{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);}
+.cl-item:last-child{border-bottom:none;}
+.cl-check{width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;background:white;user-select:none;}
+.cl-check:hover{border-color:var(--teal);}
+.cl-check.checked{background:var(--teal);border-color:var(--teal);}
+.cl-check.checked::after{content:'✓';font-size:12px;font-weight:800;color:white;}
+.cl-label{flex:1;font-size:13px;cursor:pointer;user-select:none;line-height:1.4;}
+.cl-label.done{color:var(--text-light);text-decoration:line-through;}
+.cl-who{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-light);background:var(--bg);padding:1px 6px;border-radius:4px;white-space:nowrap;flex-shrink:0;}
+.reset-note{font-size:11px;color:var(--text-light);font-style:italic;text-align:right;padding:3px 16px 10px;}
+
+/* PASSDOWN */
+.passdown-side-tabs{display:flex;gap:8px;margin-bottom:14px;}
+.pd-side-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:white;color:var(--text-light);font-family:'DM Sans',sans-serif;transition:all 0.15s;}
+.pd-side-tab.tab-well{border-color:var(--teal);background:var(--teal-bg);color:var(--teal);}
+.pd-side-tab.tab-quar{border-color:var(--green-dark);background:var(--green-bg);color:var(--green-dark);}
+
+/* KENNEL ENTRY FORM */
+.kennel-form-grid{display:grid;gap:10px;}
+.kennel-row{border:1.5px solid var(--border);border-radius:8px;padding:12px;background:#fafaf8;transition:border-color 0.2s;}
+.kennel-row.has-data{border-color:var(--teal);background:white;}
+.kennel-row-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.kennel-id-label{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--teal);min-width:36px;}
+.kennel-dog-input{flex:1;min-width:100px;}
+.kennel-clean-wrap{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.kennel-clean-check{width:18px;height:18px;border:2px solid var(--border);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;background:white;flex-shrink:0;}
+.kennel-clean-check.checked{background:var(--green);border-color:var(--green);}
+.kennel-clean-check.checked::after{content:'🧼';font-size:10px;}
+.kennel-clean-label{font-size:12px;color:var(--text-light);white-space:nowrap;}
+.kennel-row-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.field-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);margin-bottom:3px;}
+
+/* POOP LEVEL MULTI-SELECT */
+.poop-levels{display:flex;gap:4px;flex-wrap:wrap;}
+.poop-btn{width:30px;height:30px;border-radius:6px;border:1.5px solid var(--border);background:white;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;font-family:'DM Mono',monospace;color:var(--text-light);}
+.poop-btn:hover{border-color:var(--teal);}
+.poop-btn.sel{border-color:var(--melon);background:var(--melon-bg);color:var(--melon);}
+.poop-btn.sel-7{border-color:#7c2d12;background:#fff1f0;color:#7c2d12;}
+
+/* PASSDOWN HISTORY */
+.history-day{margin-bottom:12px;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;}
+.history-day-header{padding:10px 14px;background:#fafaf8;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.history-day-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.history-day-meta{font-size:11px;color:var(--text-light);}
+.history-day-body{padding:0;}
+.history-kennel-row{display:grid;grid-template-columns:56px 1fr 70px 70px 80px 40px;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);align-items:center;font-size:12px;}
+.history-kennel-row:last-child{border-bottom:none;}
+.history-kennel-row.general-notes{grid-template-columns:1fr;background:#fafaf8;font-style:italic;color:var(--text-light);}
+.history-header-row{background:#f5f4f0;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);}
+.clean-yes{color:var(--green-dark);font-weight:600;}
+
+/* REPORTS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px;}
+.stat-card{background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);text-align:center;}
+.stat-num{font-size:28px;font-weight:700;line-height:1;margin-bottom:3px;}
+.stat-label{font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;}
+.report-table{width:100%;border-collapse:collapse;font-size:13px;}
+.report-table th{text-align:left;padding:7px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);background:#fafaf8;border-bottom:2px solid var(--border);}
+.report-table td{padding:8px 10px;border-bottom:1px solid var(--border);}
+.report-table tr:last-child td{border-bottom:none;}
+.pct-bar-wrap{display:flex;align-items:center;gap:6px;}
+.pct-bar-bg{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;min-width:50px;}
+.pct-bar-fill{height:100%;border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- API PROMPT MODAL -->
+<div class="modal-overlay" id="api-modal" style="display:none;">
+  <div class="modal-card">
+    <h2>Connect to Google Sheets</h2>
+    <p>Paste your Apps Script Web App URL below. This only needs to be done once on this device. All staff completions, passdowns, and updates will sync to your Google Sheet automatically.</p>
+    <div class="form-row" style="margin-bottom:12px;">
+      <input class="f-input" id="api-url-input" placeholder="https://script.google.com/macros/s/…/exec">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="skipApiSetup()">Skip for now</button>
+      <button class="btn btn-primary" onclick="saveApiUrl()">Save & Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🐾</div>
+    <h1>ATR Animal Care</h1>
+    <p>Select your name, shift, and side to begin</p>
+    <div class="login-status" id="login-status">Loading staff…</div>
+    <div class="login-err" id="login-err"></div>
+    <select class="login-select" id="login-sel" onchange="onNameChange()"><option value="">— Who's starting their shift? —</option></select>
+    <div id="shift-side-pickers">
+      <div class="picker-label">Shift type</div>
+      <div class="picker-grid">
+        <button class="pick-btn" id="btn-opening" onclick="pickShift('opening')">🌅 Opening</button>
+        <button class="pick-btn" id="btn-closing" onclick="pickShift('closing')">🌙 Closing</button>
+      </div>
+      <div class="picker-label">Side</div>
+      <div class="picker-grid">
+        <button class="pick-btn" id="btn-well" onclick="pickSide('Well')">💧 Well</button>
+        <button class="pick-btn" id="btn-quar" onclick="pickSide('Quarantine')">🔬 Quarantine</button>
+      </div>
+    </div>
+    <div class="login-note" id="sup-login-note" style="display:none;margin-top:-6px;margin-bottom:12px;">Leadership can log in directly — pick a side/shift to view once inside.</div>
+    <input class="login-input" type="password" id="login-pin" placeholder="Enter your PIN" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Start My Shift →</button>
+    <div class="login-note">Default PIN: <strong>1234</strong></div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<!-- APP -->
+<div id="app">
+  <header class="header">
+    <div class="header-left">
+      <div class="header-logo">🐾</div>
+      <h1>ATR Animal Care</h1>
+    </div>
+    <div class="header-right">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span class="header-date" id="hdr-date"></span>
+      <div class="user-badge">
+        <span id="hdr-user"></span>
+        <span class="shift-chip" id="hdr-shift"></span>
+        <span class="shift-chip" id="hdr-side"></span>
+        <span class="shift-chip chip-sup" id="hdr-role" style="display:none">Supervisor</span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">End Shift</button>
+    </div>
+  </header>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showSec('dashboard',this)">Dashboard</button>
+    <button class="nav-tab" onclick="showSec('checklist',this)">Checklist</button>
+    <button class="nav-tab" onclick="showSec('passdown',this)">Passdown</button>
+    <button class="nav-tab sup-only" onclick="showSec('reports',this)" style="display:none">Reports</button>
+    <button class="nav-tab sup-only" onclick="showSec('settings',this)" style="display:none">Settings</button>
+    <button class="nav-tab" onclick="showSec('help',this)">Help</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="section active" id="sec-dashboard">
+    <!-- LEADERSHIP CONTEXT SWITCHER — pick which side/shift checklist to view -->
+    <div class="card" id="ctx-switcher" style="display:none;margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--muttro)"></span>Viewing</span></div>
+      <div class="card-body" style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div class="field-label" style="margin-bottom:6px;">Shift</div>
+          <div style="display:flex;gap:6px;">
+            <button class="pick-btn" id="ctx-btn-opening" onclick="ctxPickShift('opening')" style="padding:8px 14px;">🌅 Opening</button>
+            <button class="pick-btn" id="ctx-btn-closing" onclick="ctxPickShift('closing')" style="padding:8px 14px;">🌙 Closing</button>
+          </div>
+        </div>
+        <div>
+          <div class="field-label" style="margin-bottom:6px;">Side</div>
+          <div style="display:flex;gap:6px;">
+            <button class="pick-btn" id="ctx-btn-well" onclick="ctxPickSide('Well')" style="padding:8px 14px;">💧 Well</button>
+            <button class="pick-btn" id="ctx-btn-quar" onclick="ctxPickSide('Quarantine')" style="padding:8px 14px;">🔬 Quarantine</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- SHIFT BANNER -->
+    <div style="background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-light);margin-bottom:3px;">Current Shift</div>
+        <div style="font-size:15px;font-weight:600;" id="banner-text"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-light);" id="banner-hours"></div>
+    </div>
+
+    <!-- REMINDERS: BEHAVIOR + MEDICAL side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+
+      <!-- BEHAVIOR REMINDERS -->
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-header">
+          <span class="card-title"><span class="dot" style="background:#7c3aed"></span>Behavior Reminders<span class="count-badge" id="badge-behavior" style="display:none"></span></span>
+        </div>
+        <div class="card-body" style="padding-bottom:10px;">
+          <div class="form-row" style="margin-bottom:10px;">
+            <input class="f-input" id="reminder-text-behavior" placeholder="Add behavior reminder…" onkeydown="if(event.key==='Enter')addReminder('behavior')">
+            <button class="btn btn-green" onclick="addReminder('behavior')">+ Add</button>
+          </div>
+          <div id="reminders-behavior"><div class="empty" style="padding:14px 0;"><div class="icon">📌</div>No reminders.</div></div>
+        </div>
+      </div>
+
+      <!-- MEDICAL REMINDERS -->
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-header">
+          <span class="card-title"><span class="dot" style="background:var(--melon)"></span>Medical Reminders<span class="count-badge" id="badge-medical" style="display:none"></span></span>
+        </div>
+        <div class="card-body" style="padding-bottom:10px;">
+          <div class="form-row" style="margin-bottom:10px;">
+            <input class="f-input" id="reminder-text-medical" placeholder="Add medical reminder…" onkeydown="if(event.key==='Enter')addReminder('medical')">
+            <button class="btn btn-green" onclick="addReminder('medical')">+ Add</button>
+          </div>
+          <div id="reminders-medical"><div class="empty" style="padding:14px 0;"><div class="icon">📌</div>No reminders.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPDATES -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--melon)"></span>Shift Updates<span class="count-badge" id="unread-badge" style="display:none"></span></span>
+        <div class="card-actions sup-only" style="display:none">
+          <select class="f-select" id="upd-type" style="font-size:12px;padding:6px 9px;"><option value="important">🔴 Important</option><option value="info" selected>🔵 Info</option></select>
+          <textarea class="f-textarea" id="upd-text" placeholder="Update for ACS team…" style="min-height:40px;margin:0;flex:1;min-width:180px;"></textarea>
+          <button class="btn btn-primary" onclick="postUpdate()">Post</button>
+        </div>
+      </div>
+      <div class="card-body" id="updates-list"><div class="empty"><div class="icon">📋</div>Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="section" id="sec-checklist">
+    <div style="margin-bottom:10px;font-size:13px;color:var(--text-light);">Tasks for: <strong id="cl-label"></strong></div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--teal)"></span>Team Checklist</span>
+        <button class="btn btn-ghost sup-only" onclick="clearChecklist()" style="display:none;color:var(--melon);border-color:var(--melon);">↺ Clear</button>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span id="prog-label">0 / 0 complete</span><span id="reset-label" style="font-style:italic;font-size:11px;"></span></div>
+        <div class="progress-bg"><div class="progress-fill" id="prog-bar" style="width:0%"></div></div>
+      </div>
+      <div class="cl-body" id="cl-body"><div class="empty"><div class="icon">⏳</div>Loading…</div></div>
+      <div style="padding:0 16px 12px;">
+        <div style="display:flex;gap:7px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">
+          <input style="flex:1;font-family:'DM Sans',sans-serif;font-size:13px;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;" id="new-task-input" placeholder="Add a task…" onkeydown="if(event.key==='Enter')addTask()">
+          <button class="btn btn-primary" onclick="addTask()">+ Add</button>
+        </div>
+      </div>
+      <!-- ASSIGN TASK (supervisor only) -->
+      <div class="form-panel sup-only" style="display:none;padding:12px 16px;background:#fafaf8;border-top:1px solid var(--border);">
+        <div class="form-row" style="align-items:center;">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);white-space:nowrap;">Assign task:</span>
+          <select class="f-select" id="acs-assign-who" style="flex:1;max-width:160px;">
+            <option value="">— Select —</option>
+            <option value="ALL">Whole Team</option>
+            <option value="Cheyenne">Cheyenne</option>
+            <option value="Lynn">Lynn</option>
+            <option value="Bryce">Bryce</option>
+            <option value="Joon">Joon</option>
+            <option value="Chloe">Chloe</option>
+            <option value="Tiffy">Tiffy</option>
+            <option value="Elliot">Elliot</option>
+          </select>
+          <input class="f-input" id="acs-assign-task" placeholder="Task description…" style="flex:2;min-width:160px;">
+          <button class="btn btn-green" onclick="assignTask()">Assign</button>
+        </div>
+      </div>
+      <div class="reset-note" id="reset-note"></div>
+    </div>
+  </div>
+
+  <!-- PASSDOWN -->
+  <div class="section" id="sec-passdown">
+    <div class="passdown-side-tabs">
+      <button class="pd-side-tab" id="pd-tab-well" onclick="switchPdSide('Well')">💧 Well (K1–K13)</button>
+      <button class="pd-side-tab" id="pd-tab-quar" onclick="switchPdSide('Quarantine')">🔬 Quarantine (K14–K19)</button>
+    </div>
+
+    <!-- WRITE PASSDOWN -->
+    <div class="card" id="write-passdown-card">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--teal)"></span>Write Passdown — <span id="pd-write-label"></span></span>
+        <button class="btn btn-primary" onclick="submitPassdown()" id="submit-pd-btn">Submit Passdown</button>
+      </div>
+      <div class="card-body">
+        <div class="kennel-form-grid" id="kennel-form"></div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);margin-bottom:6px;">General Notes / Additional Comments</div>
+          <textarea class="f-textarea" id="pd-general-notes" placeholder="Laundry status, tasks left for closer, anything else the next shift should know…" style="min-height:72px;"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSDOWN HISTORY -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--muttro)"></span>Previous Passdowns — Last 7 Days</span>
+        <button class="btn btn-ghost" onclick="loadPassdownHistory()">↻ Refresh</button>
+      </div>
+      <div class="card-body" id="passdown-history"><div class="empty"><div class="icon">⏳</div>Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="section" id="sec-reports">
+    <!-- FILTERS -->
+    <div class="report-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:14px;background:white;border-radius:var(--radius);box-shadow:var(--shadow);">
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);">Range:</span>
+      <select class="f-select" id="rpt-days" onchange="loadReport()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+      <button class="btn btn-ghost" onclick="exportCSV()">⬇ Export Checklist CSV</button>
+      <select class="f-select" id="pd-export-side" style="max-width:130px;">
+        <option value="">All Sides</option>
+        <option value="Well">Well</option>
+        <option value="Quarantine">Quarantine</option>
+      </select>
+      <button class="btn btn-ghost" onclick="exportPassdownCSV()">⬇ Export Passdown CSV</button>
+    </div>
+
+    <!-- CHECKLIST STATS -->
+    <div class="stat-grid" id="rpt-stats"></div>
+
+    <!-- DAILY COMPLETION CHART -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--teal)"></span>Daily Task Completions</span>
+      </div>
+      <div class="card-body">
+        <div id="rpt-chart" style="width:100%;overflow-x:auto;"></div>
+      </div>
+    </div>
+
+    <!-- BY STAFF MEMBER -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--green)"></span>Completions by Staff Member</span></div>
+      <div class="card-body" id="rpt-emp"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- BY TASK -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--yellow)"></span>By Task</span></div>
+      <div class="card-body" id="rpt-task"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- CHECKLIST FULL LOG -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--muttro)"></span>Checklist — Full Log</span></div>
+      <div class="card-body" style="overflow-x:auto;" id="rpt-log"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- PASSDOWN STATS -->
+    <div class="stat-grid" id="rpt-pd-stats" style="margin-top:20px;"></div>
+
+    <!-- PASSDOWN LOG -->
+    <div class="card">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--melon)"></span>Passdown — Full Log</span></div>
+      <div class="card-body" style="overflow-x:auto;" id="rpt-pd-log"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+  <!-- SETTINGS -->
+  <div class="section" id="sec-settings">
+
+    <!-- STAFF ROSTER -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--teal)"></span>Staff Roster</span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--text-light);margin-bottom:10px;line-height:1.5;">Staff added or deactivated here update the login list for everyone right away — no file edits needed.</p>
+        <div class="form-row">
+          <input class="f-input" id="new-staff-name" placeholder="Name" style="max-width:130px">
+          <select class="f-select" id="new-staff-role" style="max-width:140px;">
+            <option value="acs">ACS Team</option>
+            <option value="staff">Staff (post-only)</option>
+            <option value="supervisor">Supervisor</option>
+          </select>
+          <input class="f-input" id="new-staff-pin" placeholder="PIN (default 1234)" style="max-width:150px">
+          <button class="btn btn-green" onclick="addStaffMember()">+ Add Staff</button>
+        </div>
+        <div id="staff-table-wrap"><div class="empty">Loading staff…</div></div>
+      </div>
+    </div>
+
+    <!-- PIN MANAGEMENT -->
+    <div class="card" style="margin-bottom:14px;max-width:600px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--grey)"></span>Change a PIN</span></div>
+      <div class="card-body">
+        <div class="form-row">
+          <select class="f-select" id="pin-who" style="flex:1"><option value="">— Select staff —</option></select>
+          <input class="f-input" type="password" id="pin-new" placeholder="New PIN" style="max-width:160px">
+          <button class="btn btn-primary" onclick="savePin()">Update PIN</button>
+        </div>
+        <div id="pin-note" style="font-size:12px;color:var(--green-dark);margin-top:6px;display:none">✓ PIN updated — takes effect next login.</div>
+      </div>
+    </div>
+
+    <!-- CHECKLIST EDITING -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--muttro)"></span>Edit Shift Checklists</span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--text-light);margin-bottom:10px;">Changes save to the Google Sheet and apply to every device the next time someone loads that side/shift's checklist.</p>
+        <div class="form-row">
+          <select class="f-select" id="tk-side" onchange="renderTaskEditor()">
+            <option value="well">Well</option>
+            <option value="quarantine">Quarantine</option>
+          </select>
+          <select class="f-select" id="tk-shift" onchange="renderTaskEditor()">
+            <option value="opening">Opening</option>
+            <option value="closing">Closing</option>
+          </select>
+        </div>
+        <div id="tk-list" style="margin:10px 0;"></div>
+        <div class="form-row">
+          <input class="f-input" id="tk-new-task" placeholder="Add a task to this list…" onkeydown="if(event.key==='Enter')tkAddTask()">
+          <button class="btn btn-green" onclick="tkAddTask()">+ Add</button>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-primary" onclick="saveTaskList()">Save Checklist</button>
+          <span id="tk-saved-note" style="font-size:12px;color:var(--green-dark);display:none;">✓ Saved to Sheet</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- API URL -->
+    <div class="card" style="max-width:600px;margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--teal)"></span>Google Sheets API URL</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">Paste your Apps Script Web App URL here to sync all data to Google Sheets. Only needs to be done once per device.</p>
+        <div class="form-row">
+          <input class="f-input" id="api-url-input" placeholder="https://script.google.com/macros/s/…/exec">
+          <button class="btn btn-primary" onclick="saveApiUrl()">Save</button>
+        </div>
+        <div id="api-url-note" style="font-size:12px;color:var(--green-dark);margin-top:6px;display:none;">✓ Saved! Dashboard is now syncing to Google Sheets.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div class="section" id="sec-help">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--teal)"></span>Getting Started</span></div>
+      <div class="card-body" style="font-size:13px;line-height:1.7;">
+        <p><strong>Logging in:</strong> pick your name from the dropdown, choose your shift type (Opening or Closing) and side (Well or Quarantine), then enter your PIN. Default PIN is <strong>1234</strong> unless you've set your own — leadership can update PINs in Settings.</p>
+        <p style="margin-top:8px;"><strong>Leadership:</strong> you can skip the shift/side picker and log straight in. Once inside, use the "Viewing" card at the top of the Dashboard to switch which side/shift's checklist you're looking at.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--melon)"></span>Dashboard Tab</span></div>
+      <div class="card-body" style="font-size:13px;line-height:1.7;">
+        <p><strong>Shift Updates:</strong> anything the team needs to know right now, marked either 🔴 Important or 🔵 Info. Tap "Mark Read" once you've seen one.</p>
+        <p style="margin-top:8px;"><strong>Reminders:</strong> ongoing behavior or medical notes for specific dogs that the whole team should keep in mind. Resolve one once it no longer applies.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--green)"></span>Checklist Tab</span></div>
+      <div class="card-body" style="font-size:13px;line-height:1.7;">
+        <p>Shows the tasks for your side and shift. Check off tasks as you go, everyone can see progress in real time. You can add your own task with the "+ Add" box at the bottom if something comes up that's not already on the list.</p>
+        <p style="margin-top:8px;">Leadership can reorder, remove, or add tasks permanently for everyone in Settings → Edit Shift Checklists.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--muttro)"></span>Passdown Tab</span></div>
+      <div class="card-body" style="font-size:13px;line-height:1.7;">
+        <p>Fill this out before your shift ends so the next shift knows what's going on in each kennel. For each kennel: dog name, whether it's been deep cleaned, poop levels, and eating amounts.</p>
+        <p style="margin-top:8px;"><strong>Mom Ate / Puppies Ate:</strong> these are separate on purpose. If it's just a mom with no litter, or a litter with no mom present, just leave the field that doesn't apply blank.</p>
+        <p style="margin-top:8px;">Use the history section to look back through the last 7 days of passdowns, so you can always check how a previous shift went instead of relying on memory or old texts. Leadership can also pull the full passdown history anytime from Reports → Export Passdown CSV, since nothing is ever deleted from the Sheet.</p>
+      </div>
+    </div>
+
+    <div class="card" id="help-sup-card" style="display:none;margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--teal)"></span>Reports & Settings (Leadership)</span></div>
+      <div class="card-body" style="font-size:13px;line-height:1.7;">
+        <p><strong>Reports:</strong> completion stats, trends over time, and a full exportable log you can filter by date range.</p>
+        <p style="margin-top:8px;"><strong>Settings:</strong> add or deactivate staff, reset PINs, and edit checklists for either side/shift. Changes here apply for the whole team immediately, no file edits or GitHub needed.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--grey)"></span>Something Not Working?</span></div>
+      <div class="card-body" style="font-size:13px;line-height:1.7;">
+        <p>If the dashboard seems stuck or won't save, try refreshing the page first. If a specific action fails repeatedly, let leadership know what you were doing when it happened so it can get sorted out.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+const DEPT = 'acs';
+let API = localStorage.getItem('atr:apiUrl') || 'https://script.google.com/macros/s/AKfycbzDGfXYmEGmBPewnK_2gSRHTzTLbQWjAXz8ZbHGxLvBYPUjOLsFMXBftNGr79Dh89wmiA/exec';
+
+// ── SHIFT TASKS (from SOPs) — fallback defaults; supervisors can edit in Settings, synced to Sheet ──
+const DEFAULT_TASKS = {
+  well: {
+    opening:['Disarm building alarm','Clock in and place belongings in break room','Safety check','Check calendar for events — add to Activity Board','Check Well side dishwasher sanitizer PH level','Check Well side food board & group chats for updates','Feed breakfast & yard all adult dogs in Well side play yard','Give medications on Well medical board — sign off on treatment sheets','Check rescue level for Well cleaning system — post in chat if low','Deep clean kennels (prioritize puppy kennels) — update Deep Clean Schedule','Feed lunch & give any medications — sign off on treatment sheets','Keep up with laundry throughout shift','Keep up with dishes throughout shift','Restock shelves in kennels if needed','Touch base with closer','Send end of shift update','Clock out'],
+    closing:['Communicate with Opening ACS for updates','Check Well side food board & group chats for updates','Check rescue level for Well cleaning system — post in chat if low','Complete remaining deep cleans','Feed dinner & yard all adult dogs in Well side play yard','Give medications on Well medical board — sign off on treatment sheets','Restock shelves in kennels if needed','Keep up with laundry throughout shift','Clean laundry drain','Keep up with dishes throughout shift','Potty breaks','Deep clean play yard','Empty all trash on Well Side','Drain dishwasher, empty food catch, leave door open','Sanitize laundry cart (if empty), countertops, and door handles','Safety check — turn off kennel lights, check all kennels latched','Mop horseshoe area and Well side laundry room','Send end of shift update','Clock out','Set building alarm (shared with Quarantine ACS)']
+  },
+  quarantine: {
+    opening:['Disarm building alarm','Clock in and place belongings in break room','Safety check','Check Quarantine side dishwasher sanitizer PH level','Fill sanitizing mats by each door','Check Quarantine food board & group chats for updates','Feed breakfast to all dogs','Give medications on Quarantine medical board — sign off on treatment sheets','Check rescue level for Quarantine cleaning system — post in chat if low','Deep clean kennels — update Deep Clean Schedule sheet','Feed lunch & give any medications — sign off on treatment sheets','Keep up with laundry throughout shift','Keep up with dishes throughout shift','Restock gear rooms if needed','Touch base with closer','Send end of shift update','Clock out'],
+    closing:['Communicate with Opening ACS for updates','Check Quarantine food board & group chats for updates','Check rescue level for Quarantine cleaning system — post in chat if low','Complete remaining deep cleans — update Deep Clean Schedule sheet','Feed dinner, give medications on Quarantine medical board — sign off on treatment sheets','Restock gear rooms if needed','Keep up with laundry throughout shift','Bring items from side of building and clean in play yard','Deep clean play yard (twice)','Pull all Q suits from kennels — put through wash','Clean laundry drain','Drain dishwasher, empty food catch, leave door open after final load','Safety check — turn off kennel lights, check all kennels latched','Empty trash from gear rooms, Q hallway/Q yard, and storage room','Mop quarantine hallway','Send end of shift update','Clock out','Set building alarm (shared with Well ACS)']
+  }
+};
+
+// Mutable, active task lists — starts as defaults, overwritten by loadTasksFromSheet() if custom lists exist
+let TASKS = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+
+// Kennels by side
+const WELL_KENNELS = ['K1','K2','K3','K4','K5','K6','K7','K8','K9','K10','K11','K12','K13'];
+const QUAR_KENNELS = ['K14','K15','K16','K17','K18','K19'];
+
+const SHIFT_HOURS = { opening:'6:30 AM – 2:00 PM', closing:'1:30 PM – 9:00 PM' };
+
+// ── STATE ─────────────────────────────────────────────────────
+let CU=null,CR=null,CSHIFT=null,CSIDE=null,STAFF=[];
+let PD_SIDE = null; // current passdown side tab
+
+// ── DATE ──────────────────────────────────────────────────────
+const todayStr=()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+
+// ── STORAGE ───────────────────────────────────────────────────
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+// ── API ───────────────────────────────────────────────────────
+function sync(msg){document.getElementById('sync-dot').textContent=msg;}
+async function apiGet(params){
+  if(!API)return null;
+  try{sync('⟳');const r=await fetch(API+'?'+new URLSearchParams(params));sync('');return await r.json();}
+  catch(e){sync('⚠');return null;}
+}
+async function apiPost(body){
+  if(!API)return null;
+  try{const r=await fetch(API,{method:'POST',body:JSON.stringify(body)});return await r.json();}
+  catch(e){return null;}
+}
+
+// ── API MODAL ─────────────────────────────────────────────────
+function showApiModal(){document.getElementById('api-modal').style.display='flex';}
+function saveApiUrl(){
+  const url=document.getElementById('api-url-input').value.trim();
+  if(!url)return;
+  localStorage.setItem('atr:apiUrl',url);
+  API=url;
+  document.getElementById('api-modal').style.display='none';
+  notif('API URL saved!');
+  loadStaffList();
+}
+function skipApiSetup(){document.getElementById('api-modal').style.display='none';}
+
+// ── STAFF ─────────────────────────────────────────────────────
+// Used only if the Sheet can't be reached (no API URL set, or offline) —
+// the live roster loads from Google Sheets via loadStaffList() below.
+const FALLBACK_STAFF=[
+  // ACS Team
+  {name:'Cheyenne',   role:'acs',        dept:'acs', pin:'1234'},
+  {name:'Lynn',       role:'acs',        dept:'acs', pin:'1234'},
+  {name:'Bryce',      role:'acs',        dept:'acs', pin:'1234'},
+  {name:'Joon',       role:'acs',        dept:'acs', pin:'1234'},
+  {name:'Chloe',      role:'acs',        dept:'acs', pin:'1234'},
+  {name:'Tiffy',      role:'acs',        dept:'acs', pin:'1234'},
+  {name:'Elliot',     role:'acs',        dept:'acs', pin:'1234'},
+  // Staff role (post updates, no reports)
+  {name:'Abby',       role:'staff',      dept:'org', pin:'1234'},
+  {name:'Kadi',       role:'staff',      dept:'org', pin:'1234'},
+  {name:'Tiffany G.', role:'staff',      dept:'org', pin:'1234'},
+  // ACS Supervisors (full access)
+  {name:'Meghan',     role:'supervisor', dept:'acs', pin:'1234'},
+  {name:'Serena',     role:'supervisor', dept:'acs', pin:'1234'},
+  // Org-wide Supervisors (full access)
+  {name:'Sherry',     role:'supervisor', dept:'org', pin:'1234'},
+  {name:'Tiffany R.', role:'supervisor', dept:'org', pin:'1234'},
+  {name:'Heidi',      role:'supervisor', dept:'org', pin:'1234'},
+  {name:'Nikkieta',   role:'supervisor', dept:'org', pin:'1234'},
+  {name:'Courtney',   role:'supervisor', dept:'org', pin:'1234'},
+  {name:'Kyle',       role:'supervisor', dept:'org', pin:'1234'},
+];
+
+async function loadStaffList(){
+  document.getElementById('login-status').style.display='block';
+  document.getElementById('login-status').textContent='Loading staff…';
+  const data=await apiGet({action:'getStaff'});
+  if(data&&data.staff&&data.staff.length){
+    STAFF=data.staff.filter(s=>s.active!==false);
+  } else {
+    STAFF=FALLBACK_STAFF;
+    document.getElementById('login-status').textContent='Offline — showing saved staff list.';
+    setTimeout(()=>{document.getElementById('login-status').style.display='none';},3000);
+  }
+  if(data&&data.staff&&data.staff.length)document.getElementById('login-status').style.display='none';
+  populateDropdown();
+}
+
+function populateDropdown(){
+  const sel=document.getElementById('login-sel');
+  sel.innerHTML='<option value="">— Who\'s starting their shift? —</option>';
+  const acs=STAFF.filter(s=>s.role==='acs');
+  const sups=STAFF.filter(s=>s.role==='supervisor');
+  if(acs.length){const g=document.createElement('optgroup');g.label='ACS Team';acs.forEach(s=>{const o=document.createElement('option');o.value=s.name+'|'+s.role;o.textContent=s.name;g.appendChild(o);});sel.appendChild(g);}
+  if(sups.length){const g=document.createElement('optgroup');g.label='Leadership';sups.forEach(s=>{const o=document.createElement('option');o.value=s.name+'|'+s.role;o.textContent=s.name;g.appendChild(o);});sel.appendChild(g);}
+}
+
+// ── SHIFT / SIDE PICKERS ──────────────────────────────────────
+function pickShift(s){
+  CSHIFT=s;
+  document.getElementById('btn-opening').className='pick-btn'+(s==='opening'?' sel-opening':'');
+  document.getElementById('btn-closing').className='pick-btn'+(s==='closing'?' sel-closing':'');
+}
+function pickSide(s){
+  CSIDE=s;
+  document.getElementById('btn-well').className='pick-btn'+(s==='Well'?' sel-well':'');
+  document.getElementById('btn-quar').className='pick-btn'+(s==='Quarantine'?' sel-quar':'');
+}
+
+function onNameChange(){
+  const sel=document.getElementById('login-sel').value;
+  const role=sel.split('|')[1];
+  const isSup=role==='supervisor';
+  document.getElementById('shift-side-pickers').style.display=isSup?'none':'block';
+  document.getElementById('sup-login-note').style.display=isSup?'block':'none';
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────
+function doLogin(){
+  const sel=document.getElementById('login-sel').value;
+  if(!sel){showErr('Please select your name.');return;}
+  const [name,role]=sel.split('|');
+  const isSup=role==='supervisor';
+  if(!isSup&&!CSHIFT){showErr('Please select Opening or Closing.');return;}
+  if(!isSup&&!CSIDE){showErr('Please select Well or Quarantine.');return;}
+  if(isSup){CSHIFT=CSHIFT||'opening';CSIDE=CSIDE||'Well';}
+  const pin=document.getElementById('login-pin').value.trim();
+  const sm=STAFF.find(s=>s.name===name);
+  if(pin!==(sm?sm.pin:'1234')){showErr('Incorrect PIN.');return;}
+  CU=name;CR=role;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('hdr-user').textContent=CU;
+  if(CR==='supervisor'){
+    document.querySelectorAll('.sup-only').forEach(el=>el.style.display='flex');
+    document.getElementById('hdr-role').style.display='';
+    document.getElementById('ctx-switcher').style.display='block';
+    document.getElementById('help-sup-card').style.display='block';
+  }
+  updateShiftSideDisplay();
+  // Staff role can post updates but not access reports
+  if(CR==='staff'){
+    document.getElementById('upd-type').closest('.card-actions').style.display='flex';
+  }
+  document.getElementById('hdr-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  document.getElementById('login-err').style.display='none';
+  document.getElementById('login-pin').value='';
+  // Set passdown to current side by default
+  PD_SIDE=CSIDE;
+  loadAll();
+}
+
+// Updates all header/banner/checklist labels that depend on CSHIFT/CSIDE —
+// called on login and whenever a supervisor switches context with the viewer toggle
+function updateShiftSideDisplay(){
+  const shiftChip=document.getElementById('hdr-shift');
+  shiftChip.className='shift-chip '+(CSHIFT==='opening'?'chip-opening':'chip-closing');
+  shiftChip.textContent=CSHIFT==='opening'?'🌅 Opening':'🌙 Closing';
+  const sideChip=document.getElementById('hdr-side');
+  sideChip.className='shift-chip '+(CSIDE==='Well'?'chip-well':'chip-quar');
+  sideChip.textContent=CSIDE==='Well'?'💧 Well':'🔬 Q';
+  document.getElementById('banner-text').textContent=`${CSHIFT==='opening'?'Opening':'Closing'} Shift — ${CSIDE} Side`;
+  document.getElementById('banner-hours').textContent=`Hours: ${SHIFT_HOURS[CSHIFT]}`;
+  document.getElementById('cl-label').textContent=`${CSHIFT.charAt(0).toUpperCase()+CSHIFT.slice(1)}, ${CSIDE} Side`;
+  if(document.getElementById('ctx-btn-opening')){
+    document.getElementById('ctx-btn-opening').className='pick-btn'+(CSHIFT==='opening'?' sel-opening':'');
+    document.getElementById('ctx-btn-closing').className='pick-btn'+(CSHIFT==='closing'?' sel-closing':'');
+    document.getElementById('ctx-btn-well').className='pick-btn'+(CSIDE==='Well'?' sel-well':'');
+    document.getElementById('ctx-btn-quar').className='pick-btn'+(CSIDE==='Quarantine'?' sel-quar':'');
+  }
+}
+
+// Lets logged-in leadership switch which side/shift checklist & passdown default they're viewing
+function ctxPickShift(s){CSHIFT=s;updateShiftSideDisplay();renderChecklist();}
+function ctxPickSide(s){CSIDE=s;PD_SIDE=s;updateShiftSideDisplay();renderChecklist();}
+
+function showErr(m){const el=document.getElementById('login-err');el.textContent=m;el.style.display='block';}
+
+function doLogout(){
+  CU=null;CR=null;CSHIFT=null;CSIDE=null;PD_SIDE=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-sel').value='';
+  document.getElementById('hdr-role').style.display='none';
+  document.getElementById('ctx-switcher').style.display='none';
+  document.getElementById('help-sup-card').style.display='none';
+  document.getElementById('shift-side-pickers').style.display='block';
+  document.getElementById('sup-login-note').style.display='none';
+  ['opening','closing'].forEach(x=>document.getElementById('btn-'+x).className='pick-btn');
+  ['well','quar'].forEach(x=>document.getElementById('btn-'+x).className='pick-btn');
+  document.querySelectorAll('.sup-only').forEach(el=>el.style.display='none');
+  showSec('dashboard',null);
+}
+
+// ── SECTION NAV ───────────────────────────────────────────────
+function showSec(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(id==='passdown'){renderPassdownForm();loadPassdownHistory();}
+  if(id==='reports'){loadReport();}
+  if(id==='settings'){
+    const el=document.getElementById('api-url-input');if(el)el.value=localStorage.getItem('atr:apiUrl')||'';
+    loadStaffTable();populatePinDropdown();renderTaskEditor();
+  }
+}
+
+// ── LOAD ALL ──────────────────────────────────────────────────
+async function loadAll(){
+  renderChecklist();
+  await Promise.all([loadUpdates(),loadReminders(),loadTasksFromSheet()]);
+  renderChecklist();
+}
+
+// ── CUSTOM TASK LISTS (Settings → supervisors only) ────────────
+async function loadTasksFromSheet(){
+  const data=await apiGet({action:'getTasks',dept:DEPT});
+  if(data&&data.tasks&&Object.keys(data.tasks).length){
+    // Merge sheet's custom lists over defaults, side by side
+    ['well','quarantine'].forEach(side=>{
+      ['opening','closing'].forEach(shift=>{
+        const list=data.tasks[side]&&data.tasks[side][shift];
+        if(list&&list.length)TASKS[side][shift]=list;
+      });
+    });
+  }
+}
+
+// ── UPDATES ───────────────────────────────────────────────────
+async function loadUpdates(){
+  const cached=lsGet('acs:updates')||[];renderUpdates(cached);
+  const data=await apiGet({action:'getUpdates',dept:DEPT});
+  if(data&&data.updates){lsSet('acs:updates',data.updates);renderUpdates(data.updates);}
+}
+
+function renderUpdates(updates){
+  const el=document.getElementById('updates-list');
+  const badge=document.getElementById('unread-badge');
+  const readSet=lsGet(`acs:read:${CU}`)||{};
+  if(!updates.length){el.innerHTML='<div class="empty"><div class="icon">📋</div>No updates yet.</div>';badge.style.display='none';return;}
+  const unread=updates.filter(u=>!readSet[u.id]).length;
+  badge.style.display=unread?'':'none';if(unread)badge.textContent=unread+' new';
+  el.innerHTML=updates.map(u=>{
+    const read=!!readSet[u.id];
+    const del=CR==='supervisor'?`<button class="btn-danger" onclick="delUpdate('${u.id}')">×</button>`:'';
+    return `<div class="update-item"><span class="unread-dot ${read?'seen':''}"></span><span class="badge badge-${u.type}">${u.type==='important'?'🔴 Important':'🔵 Info'}</span><div class="update-content"><div class="update-text">${esc(u.text)}</div><div class="update-meta"><span class="update-author">${esc(u.author)}</span><span class="update-time">${u.time}</span></div></div><button class="read-btn ${read?'done':''}" onclick="markRead('${u.id}')">${read?'✓ Read':'Mark read'}</button>${del}</div>`;
+  }).join('');
+}
+
+async function postUpdate(){
+  const text=document.getElementById('upd-text').value.trim();if(!text)return;
+  const type=document.getElementById('upd-type').value;
+  const upd={id:Date.now().toString(),text,type,author:CU,time:new Date().toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}),dept:DEPT};
+  const cached=lsGet('acs:updates')||[];cached.unshift(upd);lsSet('acs:updates',cached);renderUpdates(cached);
+  document.getElementById('upd-text').value='';
+  await apiPost({action:'logUpdate',...upd});notif('Update posted!');
+}
+
+function markRead(id){const r=lsGet(`acs:read:${CU}`)||{};r[id]=true;lsSet(`acs:read:${CU}`,r);renderUpdates(lsGet('acs:updates')||[]);}
+function delUpdate(id){const u=(lsGet('acs:updates')||[]).filter(x=>x.id!==id);lsSet('acs:updates',u);renderUpdates(u);}
+
+// ── REMINDERS ─────────────────────────────────────────────────
+async function loadReminders(){
+  const cached=lsGet('acs:reminders')||[];renderReminders(cached);
+  const data=await apiGet({action:'getReminders'});
+  if(data&&data.reminders){lsSet('acs:reminders',data.reminders);renderReminders(data.reminders);}
+}
+
+function renderReminders(reminders){
+  ['behavior','medical'].forEach(cat=>{
+    const catReminders=reminders.filter(r=>(r.category||'behavior')===cat);
+    const el=document.getElementById('reminders-'+cat);
+    const badge=document.getElementById('badge-'+cat);
+    if(!catReminders.length){
+      el.innerHTML='<div class="empty" style="padding:14px 0;"><div class="icon">📌</div>No reminders.</div>';
+      badge.style.display='none';return;
+    }
+    badge.style.display='';badge.textContent=catReminders.length;
+    el.innerHTML=catReminders.map(r=>`<div class="reminder-item">
+      <span class="reminder-pin">${cat==='medical'?'🩺':'🎓'}</span>
+      <div style="flex:1"><div class="reminder-text">${esc(r.text)}</div><div class="reminder-meta">${esc(r.postedBy)} · ${r.time}</div></div>
+      <button class="btn-danger" onclick="resolveReminder('${r.id}')" title="Resolve">×</button>
+    </div>`).join('');
+  });
+}
+
+async function addReminder(category){
+  const input=document.getElementById('reminder-text-'+category);
+  const text=input.value.trim();if(!text)return;
+  const r={id:Date.now().toString(),text,category,postedBy:CU,time:new Date().toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}),date:todayStr()};
+  const cached=lsGet('acs:reminders')||[];cached.unshift(r);lsSet('acs:reminders',cached);renderReminders(cached);
+  input.value='';
+  await apiPost({action:'logReminder',text,category,postedBy:CU,date:todayStr()});notif('Reminder added!');
+}
+
+async function resolveReminder(id){
+  let cached=(lsGet('acs:reminders')||[]).filter(r=>r.id!==id);lsSet('acs:reminders',cached);renderReminders(cached);
+  await apiPost({action:'resolveReminder',id});notif('Reminder resolved.');
+}
+
+// ── CHECKLIST ─────────────────────────────────────────────────
+function sideKey(){return CSIDE==='Quarantine'?'quarantine':'well';}
+function clKey(){return`acs:cl:${sideKey()}:${CSHIFT}`;}
+function getClData(){
+  let d=lsGet(clKey());
+  const currentList=(TASKS[sideKey()]||TASKS.well)[CSHIFT]||[];
+  if(!d){
+    d={tasks:currentList.map((l,i)=>({id:`d${i}`,label:l,done:false,doneBy:null,assignedTo:'ALL'})),clearedAt:null,seededFrom:currentList.join('|')};
+    lsSet(clKey(),d);
+  } else if(d.seededFrom!==currentList.join('|') && !d.tasks.some(t=>t.done)){
+    // Task list was edited in Settings and nothing's been checked off yet on this device — reseed
+    d={tasks:currentList.map((l,i)=>({id:`d${i}`,label:l,done:false,doneBy:null,assignedTo:'ALL'})),clearedAt:d.clearedAt,seededFrom:currentList.join('|')};
+    lsSet(clKey(),d);
+  }
+  return d;
+}
+function clearChecklist(){
+  if(!confirm('Clear all completed tasks from the checklist? This cannot be undone.'))return;
+  const data=getClData();
+  data.tasks.forEach(t=>{t.done=false;t.doneBy=null;});
+  data.clearedAt=new Date().toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  lsSet(clKey(),data);
+  renderChecklist();
+  notif('Checklist cleared.');
+}
+
+function renderChecklist(){
+  const data=getClData(),tasks=data.tasks;
+  const visible=tasks.filter(t=>t.assignedTo==='ALL'||t.assignedTo===CU||!t.assignedTo);
+  const done=visible.filter(t=>t.done).length;
+  const pct=visible.length?Math.round(done/visible.length*100):0;
+  document.getElementById('prog-label').textContent=`${done} / ${visible.length} complete`;
+  document.getElementById('prog-bar').style.width=pct+'%';
+  const clearedMsg=data.clearedAt?`Last cleared: ${data.clearedAt}`:'Supervisors can clear completed tasks';
+  document.getElementById('reset-label').textContent=clearedMsg;
+  document.getElementById('reset-note').textContent=clearedMsg;
+
+  const team=visible.filter(t=>t.assignedTo==='ALL'||!t.assignedTo);
+  const mine=visible.filter(t=>t.assignedTo===CU);
+
+  const renderItems=items=>items.map(t=>{
+    const who=t.done&&t.doneBy?`<span class="cl-who">✓ ${esc(t.doneBy)}</span>`:'';
+    const assignChip=t.assignedTo&&t.assignedTo!=='ALL'?`<span style="font-size:10px;background:var(--muttro-bg);color:var(--muttro);padding:2px 7px;border-radius:4px;font-weight:600;flex-shrink:0;">→ ${esc(t.assignedTo)}</span>`:'';
+    const canDel=CR==='supervisor'||(t.assignedTo===CU);
+    const del=canDel?`<button class="btn-danger" onclick="delTask('${t.id}')">×</button>`:'';
+    return `<div class="cl-item"><div class="cl-check ${t.done?'checked':''}" onclick="toggleTask('${t.id}')"></div><span class="cl-label ${t.done?'done':''}" onclick="toggleTask('${t.id}')">${esc(t.label)}</span>${assignChip}${who}${del}</div>`;
+  }).join('');
+
+  let html='';
+  if(team.length){if(mine.length)html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-light);margin:10px 0 6px;">👥 Team Tasks</div>`;html+=renderItems(team);}
+  if(mine.length){html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-light);margin:14px 0 6px;">📌 Assigned to Me</div>`;html+=renderItems(mine);}
+  if(!visible.length)html='<div class="empty"><div class="icon">✅</div>No tasks.</div>';
+  document.getElementById('cl-body').innerHTML=html;
+}
+
+function toggleTask(id){
+  const data=getClData(),task=data.tasks.find(t=>t.id===id);if(!task)return;
+  task.done=!task.done;task.doneBy=task.done?CU:null;
+  lsSet(clKey(),data);
+  if(task.done)apiPost({action:'logChecklist',dept:DEPT,date:todayStr(),employee:CU,task:task.label,shiftType:CSHIFT,side:CSIDE,period:todayStr()});
+  renderChecklist();
+  // Sync to other devices via Sheet — reload after brief delay
+  if(task.done)setTimeout(syncChecklist,1500);
+}
+async function syncChecklist(){
+  // Pull latest from sheet log not needed — localStorage is shared on same device
+  // For cross-device sync, supervisors use Clear button; tasks are visible to all on same device
+}
+
+function delTask(id){const data=getClData();data.tasks=data.tasks.filter(t=>t.id!==id);lsSet(clKey(),data);renderChecklist();}
+
+function addTask(){
+  const input=document.getElementById('new-task-input'),label=input.value.trim();if(!label)return;
+  const data=getClData();
+  data.tasks.push({id:Date.now().toString(),label,done:false,doneBy:null,assignedTo:'ALL'});
+  lsSet(clKey(),data);input.value='';renderChecklist();notif('Task added!');
+}
+
+function assignTask(){
+  const who=document.getElementById('acs-assign-who').value;
+  const label=document.getElementById('acs-assign-task').value.trim();
+  if(!who||!label)return;
+  const data=getClData();
+  data.tasks.push({id:Date.now().toString(),label,done:false,doneBy:null,assignedTo:who});
+  lsSet(clKey(),data);
+  document.getElementById('acs-assign-task').value='';
+  apiPost({action:'logChecklist',dept:DEPT,date:todayStr(),employee:`[Assigned to ${who}]`,task:label,shiftType:CSHIFT,side:CSIDE,period:todayStr()});
+  renderChecklist();
+  notif(`Task assigned to ${who==='ALL'?'whole team':who}!`);
+}
+
+// ── PASSDOWN ──────────────────────────────────────────────────
+function switchPdSide(side){
+  PD_SIDE=side;
+  document.getElementById('pd-tab-well').className='pd-side-tab'+(side==='Well'?' tab-well':'');
+  document.getElementById('pd-tab-quar').className='pd-side-tab'+(side==='Quarantine'?' tab-quar':'');
+  renderPassdownForm();
+  loadPassdownHistory();
+}
+
+function renderPassdownForm(){
+  const side=PD_SIDE||CSIDE||'Well';
+  document.getElementById('pd-write-label').textContent=`${CSHIFT==='opening'?'Opening':'Closing'} — ${side} Side`;
+  const kennels=side==='Well'?WELL_KENNELS:QUAR_KENNELS;
+  // Check for saved draft
+  const draftKey=`acs:pd-draft:${CU}:${CSHIFT}:${side}:${todayStr()}`;
+  const draft=lsGet(draftKey)||{};
+
+  document.getElementById('kennel-form').innerHTML=kennels.map(k=>{
+    const kd=draft[k]||{};
+    const levels=[1,2,3,4,5,6,7];
+    const selectedLevels=kd.poopLevels||[];
+    const poopBtns=levels.map(l=>`<button type="button" class="poop-btn ${selectedLevels.includes(l)?'sel'+(l===7?' sel-7':''):''}" onclick="togglePoopLevel('${k}',${l},this)">${l}</button>`).join('');
+    const hasData=kd.dogName||kd.ateMom||kd.atePuppies||selectedLevels.length;
+    const ateOpts=(val)=>['','All','Most','Half','Some','None','N/A'].map(o=>`<option value="${o}" ${val===o?'selected':''}>${o===''?'—':o}</option>`).join('');
+    return `<div class="kennel-row ${hasData?'has-data':''}" id="kr-${k}">
+      <div class="kennel-row-header">
+        <span class="kennel-id-label">${k}</span>
+        <input class="f-input kennel-dog-input" id="dog-${k}" placeholder="Dog name (or Empty)" value="${esc(kd.dogName||'')}" oninput="saveDraft('${k}')">
+        <div class="kennel-clean-wrap">
+          <div class="kennel-clean-check ${kd.deepCleaned?'checked':''}" id="clean-${k}" onclick="toggleClean('${k}')"></div>
+          <span class="kennel-clean-label">Deep cleaned</span>
+        </div>
+      </div>
+      <div class="kennel-row-fields" style="grid-template-columns:1fr 1fr 1fr;">
+        <div>
+          <div class="field-label">Mom Ate</div>
+          <select class="f-select" id="atemom-${k}" style="width:100%" onchange="saveDraft('${k}')">${ateOpts(kd.ateMom||'')}</select>
+        </div>
+        <div>
+          <div class="field-label">Puppies Ate</div>
+          <select class="f-select" id="atepups-${k}" style="width:100%" onchange="saveDraft('${k}')">${ateOpts(kd.atePuppies||'')}</select>
+        </div>
+        <div>
+          <div class="field-label">Poop levels</div>
+          <div class="poop-levels" id="poop-${k}">${poopBtns}</div>
+        </div>
+      </div>
+      <div style="margin-top:7px;">
+        <div class="field-label">Notes</div>
+        <input class="f-input" id="notes-${k}" placeholder="Observations, concerns, medical flags…" value="${esc(kd.notes||'')}" oninput="saveDraft('${k}')" style="width:100%">
+      </div>
+    </div>`;
+  }).join('');
+
+  // Restore general notes
+  document.getElementById('pd-general-notes').value=draft['__general']||'';
+  document.getElementById('pd-general-notes').oninput=()=>saveDraft('__general');
+}
+
+function getKennelDraft(k){
+  const side=PD_SIDE||CSIDE||'Well';
+  const key=`acs:pd-draft:${CU}:${CSHIFT}:${side}:${todayStr()}`;
+  return lsGet(key)||{};
+}
+
+function setKennelDraft(k,data){
+  const side=PD_SIDE||CSIDE||'Well';
+  const key=`acs:pd-draft:${CU}:${CSHIFT}:${side}:${todayStr()}`;
+  const draft=lsGet(key)||{};
+  draft[k]=data;
+  lsSet(key,draft);
+}
+
+function saveDraft(k){
+  if(k==='__general'){
+    const side=PD_SIDE||CSIDE||'Well';
+    const key=`acs:pd-draft:${CU}:${CSHIFT}:${side}:${todayStr()}`;
+    const draft=lsGet(key)||{};
+    draft['__general']=document.getElementById('pd-general-notes').value;
+    lsSet(key,draft);
+    return;
+  }
+  const side=PD_SIDE||CSIDE||'Well';
+  const key=`acs:pd-draft:${CU}:${CSHIFT}:${side}:${todayStr()}`;
+  const draft=lsGet(key)||{};
+  const existing=draft[k]||{};
+  draft[k]={
+    dogName:(document.getElementById(`dog-${k}`)||{}).value||'',
+    ateMom:(document.getElementById(`atemom-${k}`)||{}).value||'',
+    atePuppies:(document.getElementById(`atepups-${k}`)||{}).value||'',
+    poopLevels:existing.poopLevels||[],
+    deepCleaned:existing.deepCleaned||false,
+    notes:(document.getElementById(`notes-${k}`)||{}).value||''
+  };
+  lsSet(key,draft);
+  const row=document.getElementById(`kr-${k}`);
+  if(row)row.className='kennel-row has-data';
+}
+
+function togglePoopLevel(kennelId,level,btn){
+  const side=PD_SIDE||CSIDE||'Well';
+  const key=`acs:pd-draft:${CU}:${CSHIFT}:${side}:${todayStr()}`;
+  const draft=lsGet(key)||{};
+  if(!draft[kennelId])draft[kennelId]={dogName:'',ateMom:'',atePuppies:'',poopLevels:[],deepCleaned:false,notes:''};
+  const levels=draft[kennelId].poopLevels||[];
+  const idx=levels.indexOf(level);
+  if(idx>-1){levels.splice(idx,1);btn.className='poop-btn';}
+  else{levels.push(level);btn.className='poop-btn sel'+(level===7?' sel-7':'');}
+  draft[kennelId].poopLevels=levels.sort((a,b)=>a-b);
+  lsSet(key,draft);
+}
+
+function toggleClean(kennelId){
+  const side=PD_SIDE||CSIDE||'Well';
+  const key=`acs:pd-draft:${CU}:${CSHIFT}:${side}:${todayStr()}`;
+  const draft=lsGet(key)||{};
+  if(!draft[kennelId])draft[kennelId]={dogName:'',ateMom:'',atePuppies:'',poopLevels:[],deepCleaned:false,notes:''};
+  draft[kennelId].deepCleaned=!draft[kennelId].deepCleaned;
+  lsSet(key,draft);
+  const el=document.getElementById(`clean-${kennelId}`);
+  if(el)el.className='kennel-clean-check'+(draft[kennelId].deepCleaned?' checked':'');
+}
+
+async function submitPassdown(){
+  const side=PD_SIDE||CSIDE||'Well';
+  const key=`acs:pd-draft:${CU}:${CSHIFT}:${side}:${todayStr()}`;
+  const draft=lsGet(key)||{};
+  const kennels=side==='Well'?WELL_KENNELS:QUAR_KENNELS;
+  const entries=kennels.map(k=>{
+    const kd=draft[k]||{};
+    return{kennelId:k,dogName:(document.getElementById(`dog-${k}`)||{}).value||kd.dogName||'',ateMom:(document.getElementById(`atemom-${k}`)||{}).value||kd.ateMom||'',atePuppies:(document.getElementById(`atepups-${k}`)||{}).value||kd.atePuppies||'',poopLevels:kd.poopLevels||[],deepCleaned:kd.deepCleaned||false,notes:(document.getElementById(`notes-${k}`)||{}).value||kd.notes||''};
+  }).filter(e=>e.dogName||e.notes||e.ateMom||e.atePuppies);
+
+  const generalNotes=document.getElementById('pd-general-notes').value.trim();
+
+  const hasEntries=entries.some(e=>e.dogName||e.notes||e.ateMom||e.atePuppies);
+  if(!hasEntries&&!generalNotes){notif('Add at least one kennel entry before submitting.');return;}
+
+  const body={action:'logPassdown',date:todayStr(),shift:CSHIFT,side,submittedBy:CU,entries,generalNotes};
+  const result=await apiPost(body);
+  if(result&&result.ok){
+    notif('Passdown submitted!');
+    // Clear draft
+    localStorage.removeItem(key);
+    renderPassdownForm();
+    loadPassdownHistory();
+  } else {
+    notif('Passdown saved locally. Will sync when online.');
+  }
+}
+
+async function loadPassdownHistory(){
+  const side=PD_SIDE||CSIDE||'Well';
+  document.getElementById('passdown-history').innerHTML='<div class="empty"><div class="icon">⏳</div>Loading…</div>';
+  const data=await apiGet({action:'getPassdown',side});
+  if(!data||!data.passdowns||!data.passdowns.length){
+    document.getElementById('passdown-history').innerHTML='<div class="empty"><div class="icon">📋</div>No passdowns found for this side.</div>';
+    return;
+  }
+  renderPassdownHistory(data.passdowns);
+}
+
+function renderPassdownHistory(passdowns){
+  const el=document.getElementById('passdown-history');
+  el.innerHTML=passdowns.map((pd,idx)=>{
+    const isFirst=idx===0;
+    const shiftLabel=pd.shift==='opening'?'🌅 Opening':'🌙 Closing';
+    const sideLabel=pd.side==='Well'?'💧 Well':'🔬 Quarantine';
+    const rows=pd.kennels.map(k=>`<div class="history-kennel-row">
+      <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--teal)">${esc(k.kennelId)}</span>
+      <span>${esc(k.dogName)}</span>
+      <span>${esc(k.ateMom||k.ate||'—')}</span>
+      <span>${esc(k.atePuppies||'—')}</span>
+      <span>${k.poopLevels||'—'}</span>
+      <span class="${k.deepCleaned==='Yes'?'clean-yes':''}">${k.deepCleaned==='Yes'?'🧼':''}</span>
+    </div>`).join('');
+    const generalRow=pd.generalNotes?`<div class="history-kennel-row general-notes">📝 ${esc(pd.generalNotes)}</div>`:'';
+    return `<div class="history-day">
+      <div class="history-day-header" onclick="toggleHistory(this)">
+        <span class="history-day-title">
+          ${shiftLabel} ${sideLabel}
+          <span style="font-size:11px;font-weight:400;color:var(--text-light)">${pd.date}</span>
+        </span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="history-day-meta">by ${esc(pd.submittedBy)} · ${pd.time}</span>
+          <span style="font-size:12px;color:var(--text-light)">${isFirst?'▼':'▶'}</span>
+        </div>
+      </div>
+      <div style="display:${isFirst?'block':'none'}">
+        <div class="history-kennel-row history-header-row"><span>Kennel</span><span>Dog</span><span>Mom Ate</span><span>Pups Ate</span><span>Poop</span><span>Clean</span></div>
+        ${rows}
+        ${generalRow}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleHistory(header){
+  const body=header.nextElementSibling;
+  const arrow=header.querySelector('span:last-child');
+  const open=body.style.display==='block';
+  body.style.display=open?'none':'block';
+  arrow.textContent=open?'▶':'▼';
+}
+
+// ── REPORTS ───────────────────────────────────────────────────
+async function loadReport(){
+  const days=parseInt(document.getElementById('rpt-days').value,10)||30;
+  const data=await apiGet({action:'getChecklistLog',dept:DEPT,days});
+  if(!data||!data.log){
+    document.getElementById('rpt-stats').innerHTML='<div class="empty">No data — make sure the API URL is configured in Settings.</div>';
+    document.getElementById('rpt-chart').innerHTML='';
+    document.getElementById('rpt-emp').innerHTML='<div class="empty">No data.</div>';
+    document.getElementById('rpt-task').innerHTML='<div class="empty">No data.</div>';
+    document.getElementById('rpt-log').innerHTML='<div class="empty">No data.</div>';
+  } else {
+
+    // Exclude assigned-task log entries from staff-completion stats
+    const log=data.log.filter(e=>e.date&&!(e.employee||'').startsWith('[Assigned'));
+
+    // Build the date range (oldest -> today)
+    const allDays=[];
+    for(let i=days-1;i>=0;i--){
+      const d=new Date();d.setDate(d.getDate()-i);
+      allDays.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+    }
+    const byDate={};allDays.forEach(d=>byDate[d]=[]);
+    log.forEach(e=>{if(byDate[e.date]!==undefined)byDate[e.date].push(e);});
+    const maxDay=Math.max(1,...Object.values(byDate).map(a=>a.length));
+
+    // ── STAT CARDS ──
+    const totalCompletions=log.length;
+    const activeDays=Object.values(byDate).filter(a=>a.length>0).length;
+    const activeStaff=[...new Set(log.map(e=>e.employee))].length;
+    const avgPerDay=activeDays?Math.round(totalCompletions/activeDays):0;
+    document.getElementById('rpt-stats').innerHTML=`
+      <div class="stat-card"><div class="stat-num" style="color:var(--teal)">${totalCompletions}</div><div class="stat-label">Total completions</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--green-dark)">${activeDays}</div><div class="stat-label">Active days</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--muttro)">${activeStaff}</div><div class="stat-label">Staff active</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--melon)">${avgPerDay}</div><div class="stat-label">Avg per day</div></div>`;
+
+    // ── DAILY BAR CHART ──
+    const barW=Math.max(8,Math.min(36,Math.floor(720/days)));
+    const chartH=140;
+    const bars=allDays.map(date=>{
+      const count=byDate[date].length;
+      const pct=maxDay>0?count/maxDay:0;
+      const barH=Math.round(pct*chartH);
+      const day=parseInt(date.split('-')[2]);
+      const isToday=date===todayStr();
+      const color=count===0?'var(--border)':isToday?'var(--teal)':'var(--green)';
+      return`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:0 0 ${barW}px;">
+        <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--text-light);height:14px;display:flex;align-items:flex-end;">${count>0?count:''}</div>
+        <div style="width:${Math.max(4,barW-4)}px;height:${chartH}px;display:flex;align-items:flex-end;">
+          <div style="width:100%;height:${Math.max(2,barH)}px;background:${color};border-radius:3px 3px 0 0;" title="${date}: ${count} completions"></div>
+        </div>
+        ${days<=31?`<div style="font-size:9px;font-family:'DM Mono',monospace;color:${isToday?'var(--teal)':'var(--text-light)'};font-weight:${isToday?'700':'400'}">${day}</div>`:''}
+      </div>`;
+    }).join('');
+    document.getElementById('rpt-chart').innerHTML=`
+      <div style="display:flex;align-items:flex-end;gap:0;padding:8px 0 0;min-width:${days*barW}px;">${bars}</div>
+      <div style="margin-top:8px;display:flex;gap:14px;font-size:11px;color:var(--text-light);">
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px;"></span>Completions</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--teal);border-radius:2px;margin-right:4px;"></span>Today</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--border);border-radius:2px;margin-right:4px;"></span>No activity</span>
+      </div>`;
+
+    // ── BY STAFF ──
+    const byEmp={};
+    log.forEach(e=>byEmp[e.employee]=(byEmp[e.employee]||0)+1);
+    const maxEmp=Math.max(1,...Object.values(byEmp));
+    const empRows=Object.entries(byEmp).sort((a,b)=>b[1]-a[1]).map(([name,count])=>{
+      const pct=Math.round(count/maxEmp*100);
+      const color=pct>60?'var(--green)':pct>30?'var(--yellow)':'var(--melon)';
+      return`<tr>
+        <td style="font-weight:500">${esc(name)}</td>
+        <td style="font-family:'DM Mono',monospace">${count}</td>
+        <td><div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;min-width:60px;">
+            <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div>
+          </div>
+          <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text-light);min-width:30px;text-align:right">${pct}%</span>
+        </div></td>
+      </tr>`;
+    }).join('');
+    document.getElementById('rpt-emp').innerHTML=empRows
+      ?`<table class="report-table"><thead><tr><th>Staff Member</th><th>Completions</th><th>Relative %</th></tr></thead><tbody>${empRows}</tbody></table>`
+      :'<div class="empty">No completions logged in this range.</div>';
+
+    // ── BY TASK ──
+    const byTask={};
+    log.forEach(e=>byTask[e.task]=(byTask[e.task]||0)+1);
+    const taskRows=Object.entries(byTask).sort((a,b)=>b[1]-a[1]).map(([task,count])=>`<tr>
+        <td>${esc(task)}</td>
+        <td style="font-family:'DM Mono',monospace">${count}</td>
+      </tr>`).join('');
+    document.getElementById('rpt-task').innerHTML=taskRows
+      ?`<table class="report-table"><thead><tr><th>Task</th><th>Times Completed</th></tr></thead><tbody>${taskRows}</tbody></table>`
+      :'<div class="empty">No completions logged in this range.</div>';
+
+    // ── FULL LOG ──
+    const logRows=[...log].reverse().slice(0,300).map(e=>`<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:11px">${e.date}</td>
+      <td style="font-weight:500">${esc(e.employee)}</td>
+      <td>${esc(e.task)}</td>
+      <td style="font-size:11px;color:var(--text-light)">${esc(e.shiftType)}</td>
+      <td style="font-size:11px;color:var(--text-light)">${esc(e.side)}</td>
+    </tr>`).join('');
+    document.getElementById('rpt-log').innerHTML=logRows
+      ?`<table class="report-table"><thead><tr><th>Date</th><th>Employee</th><th>Task</th><th>Shift</th><th>Side</th></tr></thead><tbody>${logRows}</tbody></table>`
+      :'<div class="empty">No completions logged in this range.</div>';
+  }
+
+  loadPassdownReport(days);
+}
+
+async function loadPassdownReport(days){
+  const data=await apiGet({action:'getPassdownLog',days});
+  if(!data||!data.log||!data.log.length){
+    document.getElementById('rpt-pd-stats').innerHTML='';
+    document.getElementById('rpt-pd-log').innerHTML='<div class="empty">No passdowns logged in this range.</div>';
+    return;
+  }
+  const log=data.log.filter(e=>e.kennelId!=='GENERAL');
+
+  // ── PASSDOWN STAT CARDS ──
+  const totalEntries=log.length;
+  const uniqueKennels=[...new Set(log.map(e=>e.kennelId))].length;
+  const uniqueShiftsSubmitted=[...new Set(log.map(e=>`${e.date}|${e.shift}|${e.side}`))].length;
+  const deepCleanedCount=log.filter(e=>e.deepCleaned==='Yes').length;
+  document.getElementById('rpt-pd-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-num" style="color:var(--melon)">${totalEntries}</div><div class="stat-label">Kennel entries logged</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--teal)">${uniqueShiftsSubmitted}</div><div class="stat-label">Passdowns submitted</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--muttro)">${uniqueKennels}</div><div class="stat-label">Kennels covered</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--green-dark)">${deepCleanedCount}</div><div class="stat-label">Deep cleans logged</div></div>`;
+
+  // ── PASSDOWN FULL LOG ──
+  const rows=[...log].reverse().slice(0,300).map(e=>`<tr>
+    <td style="font-family:'DM Mono',monospace;font-size:11px">${esc(e.date)}</td>
+    <td style="font-size:11px;color:var(--text-light)">${esc(e.shift)}</td>
+    <td style="font-size:11px;color:var(--text-light)">${esc(e.side)}</td>
+    <td style="font-weight:500">${esc(e.submittedBy)}</td>
+    <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--teal)">${esc(e.kennelId)}</td>
+    <td>${esc(e.dogName)}</td>
+    <td>${esc(e.ateMom)||'—'}</td>
+    <td>${esc(e.atePuppies)||'—'}</td>
+    <td>${esc(e.poopLevels)||'—'}</td>
+    <td>${e.deepCleaned==='Yes'?'🧼':''}</td>
+    <td style="font-size:11px;">${esc(e.notes)}</td>
+  </tr>`).join('');
+  document.getElementById('rpt-pd-log').innerHTML=`<table class="report-table"><thead><tr><th>Date</th><th>Shift</th><th>Side</th><th>Submitted By</th><th>Kennel</th><th>Dog</th><th>Mom Ate</th><th>Pups Ate</th><th>Poop</th><th>Clean</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function exportCSV(){
+  const days=parseInt(document.getElementById('rpt-days').value,10)||30;
+  apiGet({action:'getChecklistLog',dept:DEPT,days}).then(data=>{
+    if(!data||!data.log){notif('No data to export.');return;}
+    const rows=[['Date','Employee','Task','Shift','Side','Period'],...data.log.map(e=>[e.date,e.employee,e.task,e.shiftType,e.side,e.period])];
+    const csv=rows.map(r=>r.map(c=>`"${(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`ACS_Checklist_Last${days}Days_${todayStr()}.csv`;a.click();
+  });
+}
+
+function exportPassdownCSV(){
+  const side=document.getElementById('pd-export-side').value;
+  const days=parseInt(document.getElementById('rpt-days').value,10)||30;
+  notif('Preparing passdown export…');
+  apiGet({action:'getPassdownLog',side,days}).then(data=>{
+    if(!data||!data.log||!data.log.length){notif('No passdown data to export.');return;}
+    const rows=[['Date','Shift','Side','Submitted By','Kennel','Dog Name','Mom Ate','Puppies Ate','Poop Levels','Deep Cleaned','Notes'],
+      ...data.log.map(e=>[e.date,e.shift,e.side,e.submittedBy,e.kennelId,e.dogName,e.ateMom,e.atePuppies,e.poopLevels,e.deepCleaned,e.notes])];
+    const csv=rows.map(r=>r.map(c=>`"${(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`ACS_Passdown_${side||'AllSides'}_Last${days}Days_${todayStr()}.csv`;a.click();
+    notif('Passdown export ready.');
+  });
+}
+
+// ── STAFF ROSTER (Settings, supervisor only) ───────────────────
+function roleLabel(r){return r==='acs'?'ACS Team':r==='supervisor'?'Supervisor':r==='staff'?'Staff':r;}
+
+async function loadStaffTable(){
+  const data=await apiGet({action:'getStaff'});
+  const staff=(data&&data.staff&&data.staff.length)?data.staff:STAFF;
+  if(!staff.length){document.getElementById('staff-table-wrap').innerHTML='<div class="empty">No staff found.</div>';return;}
+  const rows=staff.map(s=>`<tr>
+    <td style="font-weight:500">${esc(s.name)}</td>
+    <td>${roleLabel(s.role)}</td>
+    <td style="font-family:'DM Mono',monospace">****</td>
+    <td>${s.active===false||s.active==='No'?'<span style="color:var(--melon);font-size:11px;font-weight:700;">Inactive</span>':'<span style="color:var(--green-dark);font-size:11px;font-weight:700;">Active</span>'}</td>
+    <td><button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="deactivateStaffMember('${esc(s.name)}')">Deactivate</button></td>
+  </tr>`).join('');
+  document.getElementById('staff-table-wrap').innerHTML=`<table class="staff-table" style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);"><th style="padding:6px 8px;">Name</th><th style="padding:6px 8px;">Role</th><th style="padding:6px 8px;">PIN</th><th style="padding:6px 8px;">Status</th><th style="padding:6px 8px;">Action</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+async function addStaffMember(){
+  const name=document.getElementById('new-staff-name').value.trim();
+  const role=document.getElementById('new-staff-role').value;
+  const pin=document.getElementById('new-staff-pin').value.trim()||'1234';
+  if(!name)return;
+  await apiPost({action:'addStaff',name,role,dept:DEPT,pin});
+  ['new-staff-name','new-staff-pin'].forEach(id=>document.getElementById(id).value='');
+  notif(`${name} added — they can log in right away.`);
+  await loadStaffList();
+  loadStaffTable();
+  populatePinDropdown();
+}
+
+async function deactivateStaffMember(name){
+  if(!confirm(`Deactivate ${name}? They will no longer be able to log in.`))return;
+  await apiPost({action:'deactivateStaff',name});
+  notif(`${name} deactivated.`);
+  await loadStaffList();
+  loadStaffTable();
+  populatePinDropdown();
+}
+
+function populatePinDropdown(){
+  const sel=document.getElementById('pin-who');
+  sel.innerHTML='<option value="">— Select staff —</option>';
+  STAFF.forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;sel.appendChild(o);});
+}
+
+async function savePin(){
+  const who=document.getElementById('pin-who').value,pin=document.getElementById('pin-new').value.trim();
+  if(!who||!pin||pin.length<4){notif('Enter a staff member and a PIN of at least 4 digits.');return;}
+  await apiPost({action:'updatePin',name:who,pin});
+  document.getElementById('pin-new').value='';
+  const n=document.getElementById('pin-note');n.style.display='block';setTimeout(()=>n.style.display='none',5000);
+  notif(`PIN updated for ${who}.`);
+  await loadStaffList();
+}
+
+// ── CHECKLIST EDITOR (Settings, supervisor only) ───────────────
+function tkCurrentList(){
+  const side=document.getElementById('tk-side').value;
+  const shift=document.getElementById('tk-shift').value;
+  return TASKS[side][shift];
+}
+
+function renderTaskEditor(){
+  const list=tkCurrentList();
+  document.getElementById('tk-list').innerHTML=list.map((label,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border);">
+      <span style="flex:1;font-size:13px;">${esc(label)}</span>
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;" onclick="tkMove(${i},-1)" ${i===0?'disabled':''}>↑</button>
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;" onclick="tkMove(${i},1)" ${i===list.length-1?'disabled':''}>↓</button>
+      <button class="btn-danger" onclick="tkDelTask(${i})">×</button>
+    </div>`).join('')||'<div class="empty">No tasks in this list.</div>';
+}
+
+function tkAddTask(){
+  const input=document.getElementById('tk-new-task');
+  const label=input.value.trim();if(!label)return;
+  tkCurrentList().push(label);
+  input.value='';
+  renderTaskEditor();
+}
+
+function tkDelTask(i){
+  tkCurrentList().splice(i,1);
+  renderTaskEditor();
+}
+
+function tkMove(i,dir){
+  const list=tkCurrentList();
+  const j=i+dir;
+  if(j<0||j>=list.length)return;
+  [list[i],list[j]]=[list[j],list[i]];
+  renderTaskEditor();
+}
+
+async function saveTaskList(){
+  const side=document.getElementById('tk-side').value;
+  const shift=document.getElementById('tk-shift').value;
+  const tasks=tkCurrentList();
+  await apiPost({action:'saveTasks',dept:DEPT,side,shift,tasks});
+  const n=document.getElementById('tk-saved-note');n.style.display='inline';setTimeout(()=>n.style.display='none',3000);
+  notif('Checklist saved — will sync to all devices.');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function notif(msg){const el=document.getElementById('notif');el.textContent=msg;el.style.display='block';setTimeout(()=>el.style.display='none',2800);}
+
+function saveApiUrl(){
+  const url=document.getElementById('api-url-input').value.trim();
+  if(!url)return;
+  localStorage.setItem('atr:apiUrl',url);
+  API=url;
+  const n=document.getElementById('api-url-note');n.style.display='block';
+  setTimeout(()=>n.style.display='none',4000);
+  notif('API URL saved — now syncing to Google Sheets!');
+  loadStaffList();
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('load',()=>{ loadStaffList(); });
+</script>
+</body>
+</html>
