@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATR — FDR Shift Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green:#AACD61;--green-dark:#8fb048;--green-bg:#f3f9e8;
+  --teal:#4B929B;--teal-bg:#eef6f7;
+  --grey:#515252;
+  --melon:#E0694A;--melon-bg:#fef0eb;
+  --yellow:#F6CD61;
+  --muttro:#4B618C;--muttro-bg:#eef0f7;
+  --bg:#F5F4F0;--card:#fff;--border:#e2e0db;
+  --text:#2a2a2a;--text-light:#6b6b6b;
+  --radius:10px;--shadow:0 2px 8px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--grey);}
+.login-card{background:white;border-radius:16px;padding:48px 40px;width:400px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.25);}
+.login-logo{width:60px;height:60px;background:var(--green);border-radius:14px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:28px;}
+.login-card h1{font-size:20px;font-weight:600;margin-bottom:4px;}
+.login-card p{color:var(--text-light);font-size:13px;margin-bottom:20px;}
+.login-select,.login-input{width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;background:white;margin-bottom:10px;transition:border-color 0.2s;}
+.login-select:focus,.login-input:focus{outline:none;border-color:var(--teal);}
+.login-btn{width:100%;padding:13px;background:var(--green);border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:#2a2a2a;cursor:pointer;transition:background 0.2s;}
+.login-btn:hover{background:var(--green-dark);}
+.login-btn:disabled{background:var(--border);color:var(--text-light);cursor:not-allowed;}
+.login-err{color:var(--melon);font-size:13px;margin-bottom:10px;display:none;}
+.login-note{font-size:11px;color:var(--text-light);margin-top:14px;}
+.login-status{font-size:12px;color:var(--teal);margin-bottom:8px;display:none;}
+
+/* APP */
+#app{display:none;}
+.header{background:var(--grey);color:white;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
+.header-left{display:flex;align-items:center;gap:12px;}
+.header-logo{width:30px;height:30px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.header h1{font-size:15px;font-weight:600;}
+.header-right{display:flex;align-items:center;gap:14px;}
+.header-date{font-size:12px;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;}
+.user-badge{background:rgba(255,255,255,0.1);border-radius:20px;padding:5px 12px;font-size:13px;display:flex;align-items:center;gap:6px;}
+.role-chip{font-size:10px;background:var(--green);color:#2a2a2a;padding:1px 7px;border-radius:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.logout-btn{background:none;border:1px solid rgba(255,255,255,0.2);color:white;padding:5px 12px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;}
+.logout-btn:hover{background:rgba(255,255,255,0.1);}
+.sync-indicator{font-size:11px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;}
+
+/* NOTIF */
+.notif{position:fixed;top:64px;right:20px;background:var(--grey);color:white;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;display:none;box-shadow:0 4px 16px rgba(0,0,0,0.2);}
+
+/* NAV */
+.nav-tabs{background:white;border-bottom:1px solid var(--border);display:flex;padding:0 20px;position:sticky;top:56px;z-index:150;}
+.nav-tab{padding:12px 18px;font-size:13px;font-weight:600;color:var(--text-light);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif;transition:all 0.15s;}
+.nav-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+.nav-tab:hover:not(.active){color:var(--teal);}
+
+/* SECTIONS */
+.section{display:none;max-width:1280px;margin:0 auto;padding:20px;}
+.section.active{display:block;}
+
+/* CARDS */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
+.card-header{padding:13px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap;}
+.card-title{font-size:11px;font-weight:700;display:flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-light);flex-shrink:0;}
+.card-title .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.card-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.card-body{padding:16px 18px;}
+
+/* BUTTONS */
+.btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;border-radius:7px;padding:7px 14px;cursor:pointer;border:none;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn-primary{background:var(--teal);color:white;}
+.btn-primary:hover{background:#3d7a82;}
+.btn-green{background:var(--green);color:#2a2a2a;}
+.btn-green:hover{background:var(--green-dark);}
+.btn-ghost{background:none;border:1.5px solid var(--border);color:var(--text-light);}
+.btn-ghost:hover{border-color:var(--teal);color:var(--teal);}
+.btn-melon{background:var(--melon);color:white;}
+.btn-danger{background:none;border:none;color:var(--border);font-size:15px;cursor:pointer;padding:2px 4px;line-height:1;transition:color 0.15s;}
+.btn-danger:hover{color:var(--melon);}
+
+/* FORMS */
+.f-input,.f-select,.f-textarea{font-family:'DM Sans',sans-serif;font-size:13px;border:1.5px solid var(--border);border-radius:7px;padding:8px 11px;color:var(--text);background:white;transition:border-color 0.2s;}
+.f-input:focus,.f-select:focus,.f-textarea:focus{outline:none;border-color:var(--teal);}
+.f-textarea{width:100%;resize:vertical;min-height:60px;}
+.f-input{flex:1;min-width:80px;}
+.f-select{cursor:pointer;}
+.form-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;}
+.form-panel{padding:14px 18px;background:#fafaf8;border-top:1px solid var(--border);}
+.form-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);white-space:nowrap;}
+
+/* BADGE */
+.badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:2px 8px;border-radius:4px;flex-shrink:0;}
+.badge-important{background:var(--melon-bg);color:var(--melon);}
+.badge-info{background:var(--teal-bg);color:var(--teal);}
+.count-badge{background:var(--melon);color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;}
+
+/* EMPTY */
+.empty{text-align:center;padding:28px 16px;color:var(--text-light);font-size:13px;}
+.empty .icon{font-size:26px;margin-bottom:6px;}
+
+/* UPDATES */
+.update-item{padding:12px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;}
+.update-item:last-child{border-bottom:none;}
+.unread-dot{width:7px;height:7px;background:var(--melon);border-radius:50%;flex-shrink:0;margin-top:5px;}
+.unread-dot.seen{background:transparent;}
+.update-content{flex:1;min-width:0;}
+.update-text{font-size:13px;line-height:1.5;word-break:break-word;white-space:pre-wrap;}
+.update-meta{display:flex;gap:8px;margin-top:3px;flex-wrap:wrap;}
+.update-author{font-size:11px;color:var(--text-light);font-family:'DM Mono',monospace;}
+.update-time{font-size:11px;color:var(--text-light);}
+.read-btn{flex-shrink:0;background:none;border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;font-family:'DM Sans',sans-serif;color:var(--text-light);cursor:pointer;transition:all 0.15s;}
+.read-btn:hover,.read-btn.done{background:var(--green-bg);border-color:var(--green);color:var(--green-dark);}
+
+/* DOGS */
+.dogs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;}
+.dog-card{border:1.5px solid var(--border);border-radius:8px;padding:12px;position:relative;transition:border-color 0.2s;}
+.dog-card:hover{border-color:var(--teal);}
+.dog-name{font-weight:600;font-size:13px;margin-bottom:2px;padding-right:20px;}
+.dog-tier{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-light);margin-bottom:8px;}
+.dog-reqs{display:flex;flex-wrap:wrap;gap:4px;}
+.req-tag{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;}
+.req-green{background:var(--green-bg);color:var(--green-dark);}
+.req-orange{background:var(--melon-bg);color:var(--melon);}
+.req-purple{background:var(--muttro-bg);color:var(--muttro);}
+.dog-del{position:absolute;top:7px;right:7px;background:none;border:none;color:var(--border);cursor:pointer;font-size:15px;line-height:1;transition:color 0.15s;}
+.dog-del:hover{color:var(--melon);}
+
+/* CHECKLIST */
+.cl-tabs{display:flex;border-bottom:1px solid var(--border);}
+.cl-tab{flex:1;padding:10px;text-align:center;font-size:12px;font-weight:600;color:var(--text-light);cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:0.5px;transition:all 0.15s;}
+.cl-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+.progress-wrap{padding:10px 18px 4px;}
+.progress-label{font-size:11px;color:var(--text-light);display:flex;justify-content:space-between;margin-bottom:5px;}
+.progress-bg{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width 0.35s ease;}
+.cl-body{padding:10px 18px 6px;}
+.cl-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-light);margin:12px 0 6px;display:flex;align-items:center;gap:6px;}
+.cl-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.cl-item:last-child{border-bottom:none;}
+.cl-check{width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;background:white;user-select:none;}
+.cl-check:hover{border-color:var(--green);}
+.cl-check.checked{background:var(--green);border-color:var(--green);}
+.cl-check.checked::after{content:'✓';font-size:12px;font-weight:800;color:white;}
+.cl-label{flex:1;font-size:13px;cursor:pointer;user-select:none;line-height:1.4;}
+.cl-label.done{color:var(--text-light);text-decoration:line-through;}
+.cl-who{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-light);background:var(--bg);padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0;}
+.cl-assigned-chip{font-size:10px;background:var(--muttro-bg);color:var(--muttro);padding:2px 7px;border-radius:4px;font-weight:600;flex-shrink:0;}
+.add-task-row{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);}
+.add-task-input{flex:1;font-family:'DM Sans',sans-serif;font-size:13px;border:1.5px solid var(--border);border-radius:7px;padding:8px 11px;transition:border-color 0.2s;}
+.add-task-input:focus{outline:none;border-color:var(--teal);}
+.reset-note{font-size:11px;color:var(--text-light);font-style:italic;text-align:right;padding:4px 18px 12px;}
+
+/* REPORTS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:white;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);text-align:center;}
+.stat-num{font-size:32px;font-weight:700;line-height:1;margin-bottom:4px;}
+.stat-label{font-size:11px;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;}
+.report-table{width:100%;border-collapse:collapse;font-size:13px;}
+.report-table th{text-align:left;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);background:#fafaf8;border-bottom:2px solid var(--border);}
+.report-table td{padding:9px 12px;border-bottom:1px solid var(--border);}
+.report-table tr:last-child td{border-bottom:none;}
+.report-table tr:hover td{background:#fafaf8;}
+.pct-bar-wrap{display:flex;align-items:center;gap:8px;}
+.pct-bar-bg{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;min-width:60px;}
+.pct-bar-fill{height:100%;border-radius:3px;}
+.pct-label{font-size:11px;font-family:'DM Mono',monospace;color:var(--text-light);min-width:30px;text-align:right;}
+.report-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;padding:16px;background:white;border-radius:var(--radius);box-shadow:var(--shadow);}
+
+/* STAFF SETTINGS */
+.staff-table{width:100%;border-collapse:collapse;font-size:13px;}
+.staff-table th{text-align:left;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);background:#fafaf8;border-bottom:2px solid var(--border);}
+.staff-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.staff-table tr:last-child td{border-bottom:none;}
+.active-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+.active-dot.yes{background:var(--green);}
+.active-dot.no{background:var(--border);}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🐾</div>
+    <h1>ATR Front Desk</h1>
+    <p>Select your name and enter your PIN to begin</p>
+    <div class="login-status" id="login-status">Loading staff list…</div>
+    <div class="login-err" id="login-err"></div>
+    <select class="login-select" id="login-sel"><option value="">— Who's starting their shift? —</option></select>
+    <input class="login-input" type="password" id="login-pin" placeholder="Enter your PIN" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Start My Shift →</button>
+    <div class="login-note">Default PIN: <strong>1234</strong> — Ask leadership to change yours in Settings.</div>
+  </div>
+</div>
+
+
+
+<div class="notif" id="notif"></div>
+
+<!-- APP -->
+<div id="app">
+  <header class="header">
+    <div class="header-left">
+      <div class="header-logo">🐾</div>
+      <h1>ATR Front Desk</h1>
+    </div>
+    <div class="header-right">
+      <span class="sync-indicator" id="sync-indicator"></span>
+      <span class="header-date" id="hdr-date"></span>
+      <div class="user-badge"><span id="hdr-user"></span><span class="role-chip" id="hdr-role"></span></div>
+      <button class="logout-btn" onclick="doLogout()">End Shift</button>
+    </div>
+  </header>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showSection('dashboard',this)">Dashboard</button>
+    <button class="nav-tab" onclick="showSection('checklist',this)">Checklist</button>
+    <button class="nav-tab sup-only" onclick="showSection('reports',this)" style="display:none">Reports</button>
+    <button class="nav-tab sup-only" onclick="showSection('settings',this)" style="display:none">Settings</button>
+    <button class="nav-tab" onclick="showSection('help',this)">Help</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="section active" id="sec-dashboard">
+
+    <!-- UPDATES -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--melon)"></span>Shift Updates<span class="count-badge" id="unread-badge" style="display:none"></span></span>
+        <div class="card-actions sup-only" style="display:none">
+          <select class="f-select" id="upd-type" style="font-size:12px;padding:6px 10px;">
+            <option value="important">🔴 Important</option>
+            <option value="info" selected>🔵 Info</option>
+          </select>
+          <textarea class="f-textarea" id="upd-text" placeholder="What should the team know?" style="min-height:44px;margin:0;flex:1;min-width:200px;"></textarea>
+          <button class="btn btn-primary" onclick="postUpdate()">Post Update</button>
+        </div>
+      </div>
+      <div class="card-body" id="updates-list"><div class="empty"><div class="icon">📋</div>Loading updates…</div></div>
+    </div>
+
+    <!-- DOGS -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--teal)"></span>Dogs — Requirements at a Glance</span>
+        <div class="card-actions sup-only" style="display:none">
+          <input class="f-input" id="dog-name" placeholder="Dog name" style="max-width:120px">
+          <input class="f-input" id="dog-tier" placeholder="Tier / stop color" style="max-width:140px">
+          <input class="f-input" id="dog-reqs" placeholder="Requirements (comma separated)" style="min-width:200px">
+          <button class="btn btn-primary" onclick="addDog()">+ Add Dog</button>
+        </div>
+      </div>
+      <div class="card-body"><div class="dogs-grid" id="dogs-grid"><div class="empty" style="grid-column:1/-1"><div class="icon">🐕</div>No dogs added yet.</div></div></div>
+    </div>
+
+    <!-- APPOINTMENTS -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--yellow)"></span>Today's Appointments<span id="appt-count-badge" style="display:none" class="count-badge"></span></span>
+        <div class="card-actions">
+          <button class="btn btn-ghost" onclick="loadAcuityAppts()" id="appt-refresh-btn">↻ Refresh</button>
+          <button class="btn btn-ghost" id="acuity-btn" onclick="openAcuity()" style="display:none">📅 Open Acuity →</button>
+          <div class="sup-only" style="display:none;gap:8px;flex-wrap:wrap;">
+            <input class="f-input" id="ap-time" placeholder="Time" style="max-width:110px">
+            <input class="f-input" id="ap-dog" placeholder="Dog" style="max-width:110px">
+            <input class="f-input" id="ap-adopter" placeholder="Adopter" style="max-width:130px">
+            <input class="f-input" id="ap-handler" placeholder="Handler" style="max-width:110px">
+            <button class="btn btn-primary" onclick="addAppt()">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body" id="appt-list"><div class="empty"><div class="icon">⏳</div>Loading appointments…</div></div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="section" id="sec-checklist">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--green)"></span>Team Checklist</span>
+        <div class="card-actions">
+          <button class="cl-tab active" id="tab-daily" onclick="switchTab('daily')">Daily</button>
+          <button class="cl-tab" id="tab-weekly" onclick="switchTab('weekly')">Weekly</button>
+          <button class="cl-tab" id="tab-monthly" onclick="switchTab('monthly')">Monthly</button>
+          <button class="btn btn-ghost sup-only" onclick="clearChecklist()" style="display:none;color:var(--melon);border-color:var(--melon);">↺ Clear</button>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span id="prog-label">0 / 0 complete</span><span id="reset-label" style="font-style:italic;font-size:11px;"></span></div>
+        <div class="progress-bg"><div class="progress-fill" id="prog-bar" style="width:0%"></div></div>
+      </div>
+      <div class="cl-body" id="cl-body"><div class="empty"><div class="icon">⏳</div>Loading…</div></div>
+      <div class="form-panel sup-only" style="display:none">
+        <div class="form-row">
+          <span class="form-label">Assign:</span>
+          <select class="f-select" id="assign-who" style="flex:1;max-width:160px;"><option value="">— Select —</option><option value="ALL">Whole Team</option></select>
+          <select class="f-select" id="assign-tab" style="max-width:110px;"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select>
+          <input class="f-input" id="assign-task" placeholder="Task description…" style="flex:2;min-width:180px;">
+          <button class="btn btn-green" onclick="assignTask()">Assign</button>
+        </div>
+      </div>
+      <div style="padding:0 18px 14px;">
+        <div class="add-task-row">
+          <input class="add-task-input" id="new-task-input" placeholder="Add a task…" onkeydown="if(event.key==='Enter')addMyTask()">
+          <button class="btn btn-green" onclick="addMyTask()">+ Add</button>
+        </div>
+      </div>
+      <div class="reset-note" id="reset-note"></div>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="section" id="sec-reports">
+    <div class="report-filters">
+      <span class="form-label">Range:</span>
+      <select class="f-select" id="rpt-days" onchange="loadReport()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+      <button class="btn btn-ghost" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>
+    <div class="stat-grid" id="rpt-stats"></div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--yellow)"></span>Daily Completions</span></div>
+      <div class="card-body" id="rpt-chart" style="overflow-x:auto;"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--teal)"></span>By Employee</span></div>
+      <div class="card-body" id="rpt-emp"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--green)"></span>By Task</span></div>
+      <div class="card-body" id="rpt-task"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--muttro)"></span>Full Log</span></div>
+      <div class="card-body" style="overflow-x:auto;" id="rpt-log"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="section" id="sec-settings">
+
+    <!-- STAFF MANAGEMENT -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <span class="card-title"><span class="dot" style="background:var(--teal)"></span>Staff Roster</span>
+        <div class="card-actions">
+          <input class="f-input" id="new-staff-name" placeholder="Name" style="max-width:120px">
+          <select class="f-select" id="new-staff-role" style="max-width:130px;">
+            <option value="fdr">FDR</option>
+            <option value="supervisor">Supervisor</option>
+          </select>
+          <input class="f-input" id="new-staff-pin" placeholder="PIN (default 1234)" style="max-width:150px">
+          <button class="btn btn-green" onclick="addStaffMember()">+ Add Staff</button>
+        </div>
+      </div>
+      <div class="card-body" id="staff-table-wrap"><div class="empty">Loading staff…</div></div>
+    </div>
+
+    <!-- PIN MANAGEMENT -->
+    <div class="card" style="margin-bottom:16px;max-width:600px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--grey)"></span>Change a PIN</span></div>
+      <div class="card-body">
+        <div class="form-row">
+          <select class="f-select" id="pin-who" style="flex:1"><option value="">— Select staff —</option></select>
+          <input class="f-input" type="password" id="pin-new" placeholder="New PIN" style="max-width:160px">
+          <button class="btn btn-primary" onclick="savePin()">Update PIN</button>
+        </div>
+        <div id="pin-note" style="font-size:12px;color:var(--green-dark);margin-top:6px;display:none">✓ PIN updated in Google Sheet.</div>
+      </div>
+    </div>
+
+    <!-- API URL -->
+    <div class="card" style="max-width:600px;margin-bottom:16px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--teal)"></span>Google Sheets API URL</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">Paste your Apps Script Web App URL here to sync data to Google Sheets. Only needs to be done once per device.</p>
+        <div class="form-row">
+          <input class="f-input" id="api-url-input" placeholder="https://script.google.com/macros/s/…/exec">
+          <button class="btn btn-primary" onclick="saveApiUrl()">Save</button>
+        </div>
+        <div id="api-url-note" style="font-size:12px;color:var(--green-dark);margin-top:6px;display:none;">✓ Saved! Dashboard is now syncing to Google Sheets.</div>
+      </div>
+    </div>
+
+    <!-- ACUITY -->
+    <div class="card" style="max-width:600px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--yellow)"></span>Acuity Scheduling URL</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">Paste your Acuity URL — an "Open Acuity" button will appear on the dashboard for all staff.</p>
+        <div class="form-row">
+          <input class="f-input" id="acuity-url-input" placeholder="https://…acuityscheduling.com/…">
+          <button class="btn btn-primary" onclick="saveAcuityUrl()">Save</button>
+        </div>
+        <div id="acuity-note" style="font-size:12px;color:var(--green-dark);margin-top:6px;display:none">✓ Saved.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div class="section" id="sec-help">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--teal)"></span>Getting Started</span></div>
+      <div class="card-body" style="font-size:13px;line-height:1.7;">
+        <p><strong>Logging in:</strong> pick your name from the dropdown and enter your PIN. Default PIN is <strong>1234</strong> unless you've set your own — leadership can update PINs in Settings.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--melon)"></span>Dashboard Tab</span></div>
+      <div class="card-body" style="font-size:13px;line-height:1.7;">
+        <p><strong>Shift Updates:</strong> anything the team needs to know right now, marked either 🔴 Important or 🔵 Info. Tap "Mark Read" once you've seen one.</p>
+        <p style="margin-top:8px;"><strong>Dogs — Requirements at a Glance:</strong> shows each dog's tier/stop color and requirements at a glance, so you're not stuck trying to remember who needs what before an appointment or adoption.</p>
+        <p style="margin-top:8px;"><strong>Today's Appointments:</strong> pulls straight from Acuity automatically, showing time, dog, adopter, and handler for the day. Tap ↻ Refresh if it looks out of date, or "Open Acuity" to see full appointment details.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--green)"></span>Checklist Tab</span></div>
+      <div class="card-body" style="font-size:13px;line-height:1.7;">
+        <p>Daily, Weekly, and Monthly tabs, each with tasks pulled from our SOPs. Check tasks off as you go, everyone can see progress in real time. Add your own task with the "+ Add" box if something comes up that's not already listed.</p>
+      </div>
+    </div>
+
+    <div class="card" id="help-sup-card" style="display:none;margin-bottom:14px;">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--teal)"></span>Reports & Settings (Leadership)</span></div>
+      <div class="card-body" style="font-size:13px;line-height:1.7;">
+        <p><strong>Reports:</strong> completion stats, trends over time, and a full exportable log you can filter by date range.</p>
+        <p style="margin-top:8px;"><strong>Settings:</strong> add or deactivate staff, reset PINs, and update the Acuity feed URL if it ever needs to change. Changes here apply for the whole team immediately.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title"><span class="dot" style="background:var(--grey)"></span>Something Not Working?</span></div>
+      <div class="card-body" style="font-size:13px;line-height:1.7;">
+        <p>If the dashboard seems stuck or won't save, try refreshing the page first. If appointments aren't showing up, try the ↻ Refresh button before assuming something's broken. If a specific action fails repeatedly, let leadership know what you were doing when it happened.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG — paste your Apps Script URL here after setup ────
+let API = localStorage.getItem('atr:apiUrl') || 'https://script.google.com/macros/s/AKfycbzDGfXYmEGmBPewnK_2gSRHTzTLbQWjAXz8ZbHGxLvBYPUjOLsFMXBftNGr79Dh89wmiA/exec';
+const DEPT = 'fdr';
+
+const DEFAULT_TASKS = {
+  daily:['Review shift updates','Check emails & Google Voice','Kennel walkthrough — check kennel cards','Water jugs','Bathroom check (opening)','Review passdown from previous shift','Check adoption confirmation texts','Profile checks'],
+  weekly:['Inventory check','Pupper Media (photos)','FDR slideshow update','Bank run (Tuesdays)','Deep clean front desk area','Update foster report card binder','Submit timecard'],
+  monthly:['Full inventory audit','Review updated SOPs','Canine Corner stock check','Go-home folder supplies check','Update kennel card binder']
+};
+
+let CU=null,CR=null,CT='daily',STAFF=[];
+
+// ─── DATE ─────────────────────────────────────────────────────
+const todayStr=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+const weekStart=()=>{const d=new Date();d.setDate(d.getDate()-d.getDay());return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+const monthStr=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;};
+const resetKey=t=>t==='daily'?todayStr():t==='weekly'?weekStart():monthStr();
+const resetLabel=t=>t==='daily'?'Resets each day':t==='weekly'?'Resets each Monday':'Resets each month';
+
+// ─── STORAGE (local only for personal prefs) ──────────────────
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+// ─── CHECKLIST (localStorage — per device, instant) ───────────
+function clKey(){return `fdr:cl:${CT}`;}
+function getClData(){
+  let d=lsGet(clKey());
+  if(!d){d={tasks:DEFAULT_TASKS[CT].map((l,i)=>({id:`def-${CT}-${i}`,label:l,done:false,doneBy:null,assignedTo:'ALL'})),clearedAt:null};lsSet(clKey(),d);}
+  return d;
+}
+function clearChecklist(){
+  if(!confirm('Clear all completed tasks from the '+CT+' checklist? This cannot be undone.'))return;
+  const data=getClData();
+  data.tasks.forEach(t=>{t.done=false;t.doneBy=null;});
+  data.clearedAt=new Date().toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  lsSet(clKey(),data);
+  renderChecklist();
+  notif('Checklist cleared.');
+}
+function saveClData(d){lsSet(clKey(),d);}
+
+// ─── API CALLS ────────────────────────────────────────────────
+function syncIndicator(msg){document.getElementById('sync-indicator').textContent=msg;}
+
+async function apiGet(params){
+  if(!API){return null;}
+  try{
+    syncIndicator('⟳ syncing');
+    const url=API+'?'+new URLSearchParams(params);
+    const r=await fetch(url);
+    const d=await r.json();
+    syncIndicator('');
+    return d;
+  }catch(e){syncIndicator('⚠ offline');return null;}
+}
+
+async function apiPost(body){
+  if(!API){return null;}
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify(body)});
+    return await r.json();
+  }catch(e){return null;}
+}
+
+// ─── STAFF ─────────────────────────────────────────────────────
+// Used only if the Sheet can't be reached (no API URL set, or offline) —
+// the live roster loads from Google Sheets via loadStaffList() below.
+const FALLBACK_STAFF=[
+  {name:'Maya',       role:'fdr',        dept:'fdr', pin:'1234'},
+  {name:'Caitlin',    role:'fdr',        dept:'fdr', pin:'1234'},
+  {name:'Natalie',    role:'fdr',        dept:'fdr', pin:'1234'},
+  {name:'Kelyn',      role:'fdr',        dept:'fdr', pin:'1234'},
+  {name:'Abby',       role:'staff',      dept:'org', pin:'1234'},
+  {name:'Kadi',       role:'staff',      dept:'org', pin:'1234'},
+  {name:'Tiffany G.', role:'staff',      dept:'org', pin:'1234'},
+  {name:'Sadie',      role:'supervisor', dept:'fdr', pin:'1234'},
+  {name:'Sherry',     role:'supervisor', dept:'org', pin:'1234'},
+  {name:'Tiffany R.', role:'supervisor', dept:'org', pin:'1234'},
+  {name:'Heidi',      role:'supervisor', dept:'org', pin:'1234'},
+  {name:'Nikkieta',   role:'supervisor', dept:'org', pin:'1234'},
+  {name:'Courtney',   role:'supervisor', dept:'org', pin:'1234'},
+  {name:'Kyle',       role:'supervisor', dept:'org', pin:'1234'},
+];
+
+async function loadStaffList(){
+  document.getElementById('login-status').style.display='block';
+  document.getElementById('login-status').textContent='Loading staff…';
+  const data=await apiGet({action:'getStaff'});
+  if(data&&data.staff&&data.staff.length){
+    STAFF=data.staff.filter(s=>s.active!==false);
+    document.getElementById('login-status').style.display='none';
+  } else {
+    STAFF=FALLBACK_STAFF;
+    document.getElementById('login-status').textContent='Offline — showing saved staff list.';
+    setTimeout(()=>{document.getElementById('login-status').style.display='none';},3000);
+  }
+  populateStaffDropdown(document.getElementById('login-sel'), STAFF);
+}
+
+
+function populateStaffDropdown(sel,staff){
+  const fdrs=staff.filter(s=>s.role==='fdr'&&(s.dept==='fdr'||s.dept==='leadership'));
+  const sups=staff.filter(s=>s.role==='supervisor');
+  sel.innerHTML='<option value="">— Who\'s starting their shift? —</option>';
+  if(fdrs.length){
+    const g=document.createElement('optgroup');g.label='FDR Team';
+    fdrs.forEach(s=>{const o=document.createElement('option');o.value=s.name+'|'+s.role;o.textContent=s.name;g.appendChild(o);});
+    sel.appendChild(g);
+  }
+  if(sups.length){
+    const g=document.createElement('optgroup');g.label='Leadership';
+    sups.forEach(s=>{const o=document.createElement('option');o.value=s.name+'|'+s.role;o.textContent=s.name;g.appendChild(o);});
+    sel.appendChild(g);
+  }
+}
+
+// ─── LOGIN ────────────────────────────────────────────────────
+async function doLogin(){
+  const sel=document.getElementById('login-sel').value;
+  if(!sel){showErr('Please select your name.');return;}
+  const [name,role]=sel.split('|');
+  const pin=document.getElementById('login-pin').value.trim();
+  const staffMember=STAFF.find(s=>s.name===name);
+  const expectedPin=staffMember?staffMember.pin:'1234';
+  if(pin!==expectedPin){showErr('Incorrect PIN — try again.');return;}
+  CU=name;CR=role;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('hdr-user').textContent=CU;
+  document.getElementById('hdr-role').textContent=CR==='supervisor'?'Supervisor':'FDR';
+  document.getElementById('hdr-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  document.getElementById('login-err').style.display='none';
+  document.getElementById('login-pin').value='';
+  if(CR==='supervisor'){
+    document.querySelectorAll('.sup-only').forEach(el=>el.style.display='flex');
+    populateAssignDropdown();
+    populatePinDropdown();
+    document.getElementById('help-sup-card').style.display='block';
+  }
+  // Staff role can post updates (show the update form) but not reports/settings
+  if(CR==='staff'){
+    document.getElementById('updates-actions').style.display='flex';
+  }
+  loadAcuityBtn();
+  loadDashboard();
+  renderChecklist();
+
+}
+
+function showErr(msg){const el=document.getElementById('login-err');el.textContent=msg;el.style.display='block';}
+
+function doLogout(){
+  CU=null;CR=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-sel').value='';
+  document.querySelectorAll('.sup-only').forEach(el=>el.style.display='none');
+  document.getElementById('help-sup-card').style.display='none';
+  showSection('dashboard',null);
+}
+
+// ─── SECTION NAV ──────────────────────────────────────────────
+function showSection(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(id==='reports')loadReport();
+  if(id==='settings')loadStaffTable();
+}
+
+// ─── LOAD DASHBOARD ───────────────────────────────────────────
+async function loadDashboard(){
+  await Promise.all([loadUpdates(),loadAppts()]);
+  loadDogs();
+}
+
+// ─── UPDATES ─────────────────────────────────────────────────
+async function loadUpdates(){
+  // Try Sheets first, fall back to localStorage
+  const cached=lsGet('fdr:updates')||[];
+  renderUpdates(cached);
+  const data=await apiGet({action:'getUpdates',dept:DEPT});
+  if(data&&data.updates){
+    lsSet('fdr:updates',data.updates);
+    renderUpdates(data.updates);
+  }
+}
+
+function renderUpdates(updates){
+  const el=document.getElementById('updates-list');
+  const badge=document.getElementById('unread-badge');
+  const readSet=lsGet(`fdr:read:${CU}`)||{};
+  if(!updates.length){el.innerHTML='<div class="empty"><div class="icon">📋</div>No updates yet.</div>';badge.style.display='none';return;}
+  const unread=updates.filter(u=>!readSet[u.id]).length;
+  badge.style.display=unread?'':'none';
+  if(unread)badge.textContent=unread+' new';
+  el.innerHTML=updates.map(u=>{
+    const read=!!readSet[u.id];
+    const del=CR==='supervisor'?`<button class="btn-danger" onclick="deleteUpdateLocal('${u.id}')">×</button>`:'';
+    return `<div class="update-item">
+      <span class="unread-dot ${read?'seen':''}"></span>
+      <span class="badge badge-${u.type}">${u.type==='important'?'🔴 Important':'🔵 Info'}</span>
+      <div class="update-content">
+        <div class="update-text">${esc(u.text)}</div>
+        <div class="update-meta"><span class="update-author">${esc(u.author)}</span><span class="update-time">${u.time}</span></div>
+      </div>
+      <button class="read-btn ${read?'done':''}" onclick="markRead('${u.id}')">${read?'✓ Read':'Mark read'}</button>
+      ${del}
+    </div>`;
+  }).join('');
+}
+
+async function postUpdate(){
+  const text=document.getElementById('upd-text').value.trim();
+  if(!text)return;
+  const type=document.getElementById('upd-type').value;
+  const update={id:Date.now().toString(),text,type,author:CU,time:new Date().toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}),dept:DEPT};
+  // Optimistic local update
+  const cached=lsGet('fdr:updates')||[];
+  cached.unshift(update);
+  lsSet('fdr:updates',cached);
+  renderUpdates(cached);
+  document.getElementById('upd-text').value='';
+  // Sync to sheet
+  await apiPost({action:'logUpdate',...update});
+  notif('Update posted!');
+}
+
+function markRead(id){
+  const readSet=lsGet(`fdr:read:${CU}`)||{};
+  readSet[id]=true;
+  lsSet(`fdr:read:${CU}`,readSet);
+  const updates=lsGet('fdr:updates')||[];
+  renderUpdates(updates);
+}
+
+function deleteUpdateLocal(id){
+  let updates=lsGet('fdr:updates')||[];
+  updates=updates.filter(u=>u.id!==id);
+  lsSet('fdr:updates',updates);
+  renderUpdates(updates);
+}
+
+// ─── DOGS ─────────────────────────────────────────────────────
+function loadDogs(){renderDogs(lsGet('fdr:dogs')||[]);}
+function renderDogs(dogs){
+  const g=document.getElementById('dogs-grid');
+  if(!dogs.length){g.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="icon">🐕</div>No dogs added yet.</div>';return;}
+  g.innerHTML=dogs.map(d=>{
+    const reqs=(d.reqs||'').split(',').map(r=>r.trim()).filter(Boolean);
+    const tags=reqs.map(r=>{const low=r.toLowerCase();const cls=low.includes('dog intro')?'req-purple':low.includes('kids')||low.includes('waiver')||low.includes('fearful')?'req-orange':'req-green';return `<span class="req-tag ${cls}">${esc(r)}</span>`;}).join('');
+    const del=CR==='supervisor'?`<button class="dog-del" onclick="deleteDog('${d.id}')">×</button>`:'';
+    return `<div class="dog-card">${del}<div class="dog-name">${esc(d.name)}</div><div class="dog-tier">${esc(d.tier)}</div><div class="dog-reqs">${tags||'<span style="color:var(--text-light);font-size:11px">No special reqs</span>'}</div></div>`;
+  }).join('');
+}
+function addDog(){
+  const name=document.getElementById('dog-name').value.trim();if(!name)return;
+  const dogs=lsGet('fdr:dogs')||[];
+  dogs.push({id:Date.now().toString(),name,tier:document.getElementById('dog-tier').value.trim(),reqs:document.getElementById('dog-reqs').value.trim()});
+  lsSet('fdr:dogs',dogs);['dog-name','dog-tier','dog-reqs'].forEach(id=>document.getElementById(id).value='');
+  renderDogs(dogs);notif('Dog added!');
+}
+function deleteDog(id){const dogs=(lsGet('fdr:dogs')||[]).filter(d=>d.id!==id);lsSet('fdr:dogs',dogs);renderDogs(dogs);}
+
+// ─── APPOINTMENTS ─────────────────────────────────────────────
+async function loadAppts(){
+  // Load manual appts from localStorage
+  let manual=lsGet('fdr:appts')||[];
+  manual=manual.filter(a=>a.day===todayStr());
+  lsSet('fdr:appts',manual);
+  // Then load from Acuity
+  await loadAcuityAppts(manual);
+}
+
+async function loadAcuityAppts(existingManual){
+  const el=document.getElementById('appt-list');
+  el.innerHTML='<div class="empty"><div class="icon">⏳</div>Loading from Acuity…</div>';
+  const data=await apiGet({action:'getAcuityAppointments'});
+  const manual=existingManual||lsGet('fdr:appts')||[];
+  if(!data||data.error){
+    // Fall back to manual entries only
+    renderAppts(manual,[]);
+    if(data&&data.error)console.warn('Acuity error:',data.error);
+    return;
+  }
+  renderAppts(manual, data.appointments||[]);
+}
+
+function renderAppts(manual, acuity){
+  const el=document.getElementById('appt-list');
+  const badge=document.getElementById('appt-count-badge');
+  const total=(manual||[]).length+(acuity||[]).length;
+  if(!total){
+    el.innerHTML='<div class="empty"><div class="icon">📅</div>No appointments today.</div>';
+    badge.style.display='none';return;
+  }
+  badge.style.display='';badge.textContent=total;
+
+  // Render Acuity appointments
+  const acuityRows=(acuity||[]).map(a=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--teal);min-width:52px;">${esc(a.time)}</span>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px;">${esc(a.label)}</div>
+      </div>
+      <span style="font-size:10px;background:var(--teal-bg);color:var(--teal);padding:2px 8px;border-radius:8px;font-weight:600;">Acuity</span>
+    </div>`).join('');
+
+  // Render manual appointments
+  const manualRows=(manual||[]).sort((a,b)=>a.time.localeCompare(b.time)).map(a=>{
+    const del=CR==='supervisor'?`<button class="btn-danger" onclick="deleteAppt('${a.id}')">×</button>`:'';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--teal);min-width:52px;">${esc(a.time)}</span>
+      <div style="flex:1"><div style="font-weight:600">${esc(a.dog)}</div><div style="font-size:11px;color:var(--text-light)">${esc(a.adopter)}</div></div>
+      <span style="font-size:11px;background:var(--green-bg);color:var(--green-dark);padding:3px 9px;border-radius:10px;font-weight:500">${esc(a.handler)}</span>
+      ${del}
+    </div>`;
+  }).join('');
+
+  let html='';
+  if(acuityRows){html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);margin-bottom:4px;">From Acuity</div>${acuityRows}`;}
+  if(manualRows){html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);margin:10px 0 4px;">Manually Added</div>${manualRows}`;}
+  el.innerHTML=html;
+}
+
+function addAppt(){
+  const time=document.getElementById('ap-time').value.trim(),dog=document.getElementById('ap-dog').value.trim();if(!time||!dog)return;
+  const all=lsGet('fdr:appts')||[];
+  all.push({id:Date.now().toString(),day:todayStr(),time,dog,adopter:document.getElementById('ap-adopter').value.trim(),handler:document.getElementById('ap-handler').value.trim()});
+  lsSet('fdr:appts',all);['ap-time','ap-dog','ap-adopter','ap-handler'].forEach(id=>document.getElementById(id).value='');
+  loadAcuityAppts(all);notif('Appointment added!');
+}
+function deleteAppt(id){const all=(lsGet('fdr:appts')||[]).filter(a=>a.id!==id);lsSet('fdr:appts',all);loadAcuityAppts(all);}
+
+// ─── ACUITY ───────────────────────────────────────────────────
+function loadAcuityBtn(){const url=localStorage.getItem('fdr:acuityurl')||'';const btn=document.getElementById('acuity-btn');if(url){btn.style.display='';btn.dataset.url=url;}else btn.style.display='none';}
+function openAcuity(){const url=localStorage.getItem('fdr:acuityurl')||'';if(url)window.open(url,'_blank');}
+function saveApiUrl(){
+  const url=document.getElementById('api-url-input').value.trim();
+  if(!url)return;
+  localStorage.setItem('atr:apiUrl',url);
+  API=url;
+  const n=document.getElementById('api-url-note');n.style.display='block';
+  setTimeout(()=>n.style.display='none',4000);
+  notif('API URL saved — now syncing to Google Sheets!');
+  loadStaffList();
+}
+function saveAcuityUrl(){localStorage.setItem('fdr:acuityurl',document.getElementById('acuity-url-input').value.trim());const n=document.getElementById('acuity-note');n.style.display='block';loadAcuityBtn();setTimeout(()=>n.style.display='none',3000);}
+
+// ─── CHECKLIST ────────────────────────────────────────────────
+function switchTab(t){CT=t;['daily','weekly','monthly'].forEach(x=>{const el=document.getElementById('tab-'+x);if(el)el.classList.toggle('active',x===t);});renderChecklist();}
+
+function renderChecklist(){
+  const data=getClData(),tasks=data.tasks;
+  const visible=tasks.filter(t=>t.assignedTo==='ALL'||t.assignedTo===CU);
+  const done=visible.filter(t=>t.done).length;
+  const pct=visible.length?Math.round(done/visible.length*100):0;
+  document.getElementById('prog-label').textContent=`${done} / ${visible.length} complete`;
+  document.getElementById('prog-bar').style.width=pct+'%';
+  const clearedMsg = data.clearedAt ? `Last cleared: ${data.clearedAt}` : 'Never cleared — supervisors can clear in Checklist tab';
+  document.getElementById('reset-label').textContent=clearedMsg;
+  document.getElementById('reset-note').textContent=clearedMsg;
+  const team=visible.filter(t=>t.assignedTo==='ALL'),mine=visible.filter(t=>t.assignedTo===CU);
+  const renderItems=items=>items.map(t=>{
+    const whoChip=t.done&&t.doneBy?`<span class="cl-who">✓ ${esc(t.doneBy)}</span>`:'';
+    const assignChip=t.assignedTo!=='ALL'?`<span class="cl-assigned-chip">→ ${esc(t.assignedTo)}</span>`:'';
+    const canDel=CR==='supervisor'||(t.assignedTo===CU&&t.assignedTo!=='ALL');
+    const del=canDel?`<button class="btn-danger" onclick="deleteClTask('${t.id}')">×</button>`:'';
+    return `<div class="cl-item"><div class="cl-check ${t.done?'checked':''}" onclick="toggleClTask('${t.id}')"></div><span class="cl-label ${t.done?'done':''}" onclick="toggleClTask('${t.id}')">${esc(t.label)}</span>${assignChip}${whoChip}${del}</div>`;
+  }).join('');
+  let html='';
+  if(team.length){if(mine.length)html+=`<div class="cl-section-title">👥 Team Tasks</div>`;html+=renderItems(team);}
+  if(mine.length){html+=`<div class="cl-section-title" style="margin-top:14px">📌 Assigned to Me</div>`;html+=renderItems(mine);}
+  if(!visible.length)html='<div class="empty"><div class="icon">✅</div>No tasks yet.</div>';
+  document.getElementById('cl-body').innerHTML=html;
+}
+
+function toggleClTask(id){
+  const data=getClData(),task=data.tasks.find(t=>t.id===id);if(!task)return;
+  task.done=!task.done;task.doneBy=task.done?CU:null;
+  saveClData(data);
+  // Log to Sheets
+  if(task.done){
+    apiPost({action:'logChecklist',dept:DEPT,date:todayStr(),employee:CU,task:task.label,listType:CT,period:resetKey(CT)});
+  }
+  renderChecklist();
+}
+
+function deleteClTask(id){const data=getClData();data.tasks=data.tasks.filter(t=>t.id!==id);saveClData(data);renderChecklist();}
+
+function addMyTask(){
+  const input=document.getElementById('new-task-input'),label=input.value.trim();if(!label)return;
+  const data=getClData();data.tasks.push({id:Date.now().toString(),label,done:false,doneBy:null,assignedTo:'ALL'});
+  saveClData(data);input.value='';renderChecklist();notif('Task added!');
+}
+
+function assignTask(){
+  const who=document.getElementById('assign-who').value;
+  const tab=document.getElementById('assign-tab').value;
+  const label=document.getElementById('assign-task').value.trim();
+  if(!who||!label)return;
+  // Use same key as clKey() — no date suffix
+  const key=`fdr:cl:${tab}`;
+  let d=lsGet(key);
+  if(!d){d={tasks:DEFAULT_TASKS[tab].map((l,i)=>({id:`def-${tab}-${i}`,label:l,done:false,doneBy:null,assignedTo:'ALL'})),clearedAt:null};}
+  const newTask={id:Date.now().toString(),label,done:false,doneBy:null,assignedTo:who};
+  d.tasks.push(newTask);
+  lsSet(key,d);
+  document.getElementById('assign-task').value='';
+  // Log assigned task to Sheet
+  apiPost({action:'logChecklist',dept:DEPT,date:todayStr(),employee:`[Assigned to ${who}]`,task:label,listType:tab+'-assigned',period:todayStr()});
+  if(tab===CT)renderChecklist();
+  notif(`Task assigned to ${who==='ALL'?'whole team':who}!`);
+}
+
+
+async function loadReport(){
+  const days=parseInt(document.getElementById('rpt-days').value,10)||30;
+  const data=await apiGet({action:'getChecklistLog',dept:DEPT,days});
+  if(!data||!data.log){
+    document.getElementById('rpt-stats').innerHTML='<div class="empty">No data — make sure the API URL is configured in Settings.</div>';
+    document.getElementById('rpt-chart').innerHTML='';
+    document.getElementById('rpt-emp').innerHTML='<div class="empty">No data.</div>';
+    document.getElementById('rpt-task').innerHTML='<div class="empty">No data.</div>';
+    document.getElementById('rpt-log').innerHTML='<div class="empty">No data.</div>';
+    return;
+  }
+
+  // Exclude assigned-task log entries from staff-completion stats
+  const log=data.log.filter(e=>e.date&&!(e.employee||'').startsWith('[Assigned'));
+
+  // Build the date range (oldest -> today)
+  const allDays=[];
+  for(let i=days-1;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    allDays.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+  }
+  const byDate={};allDays.forEach(d=>byDate[d]=[]);
+  log.forEach(e=>{if(byDate[e.date]!==undefined)byDate[e.date].push(e);});
+  const maxDay=Math.max(1,...Object.values(byDate).map(a=>a.length));
+
+  // ── STAT CARDS ──
+  const totalCompletions=log.length;
+  const activeDays=Object.values(byDate).filter(a=>a.length>0).length;
+  const activeStaff=[...new Set(log.map(e=>e.employee))].length;
+  const avgPerDay=activeDays?Math.round(totalCompletions/activeDays):0;
+  document.getElementById('rpt-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-num" style="color:var(--teal)">${totalCompletions}</div><div class="stat-label">Total completions</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--green-dark)">${activeDays}</div><div class="stat-label">Active days</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--muttro)">${activeStaff}</div><div class="stat-label">Staff active</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--melon)">${avgPerDay}</div><div class="stat-label">Avg per day</div></div>`;
+
+  // ── DAILY BAR CHART ──
+  const barW=Math.max(8,Math.min(36,Math.floor(720/days)));
+  const chartH=140;
+  const bars=allDays.map(date=>{
+    const count=byDate[date].length;
+    const pct=maxDay>0?count/maxDay:0;
+    const barH=Math.round(pct*chartH);
+    const day=parseInt(date.split('-')[2]);
+    const isToday=date===todayStr();
+    const color=count===0?'var(--border)':isToday?'var(--teal)':'var(--green)';
+    return`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:0 0 ${barW}px;">
+      <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--text-light);height:14px;display:flex;align-items:flex-end;">${count>0?count:''}</div>
+      <div style="width:${Math.max(4,barW-4)}px;height:${chartH}px;display:flex;align-items:flex-end;">
+        <div style="width:100%;height:${Math.max(2,barH)}px;background:${color};border-radius:3px 3px 0 0;" title="${date}: ${count} completions"></div>
+      </div>
+      ${days<=31?`<div style="font-size:9px;font-family:'DM Mono',monospace;color:${isToday?'var(--teal)':'var(--text-light)'};font-weight:${isToday?'700':'400'}">${day}</div>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('rpt-chart').innerHTML=`
+    <div style="display:flex;align-items:flex-end;gap:0;padding:8px 0 0;min-width:${days*barW}px;">${bars}</div>
+    <div style="margin-top:8px;display:flex;gap:14px;font-size:11px;color:var(--text-light);">
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px;"></span>Completions</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--teal);border-radius:2px;margin-right:4px;"></span>Today</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--border);border-radius:2px;margin-right:4px;"></span>No activity</span>
+    </div>`;
+
+  // ── BY EMPLOYEE ──
+  const byEmp={};
+  log.forEach(e=>byEmp[e.employee]=(byEmp[e.employee]||0)+1);
+  const maxEmp=Math.max(1,...Object.values(byEmp));
+  const empRows=Object.entries(byEmp).sort((a,b)=>b[1]-a[1]).map(([name,count])=>{
+    const pct=Math.round(count/maxEmp*100);
+    const color=pct>60?'var(--green)':pct>30?'var(--yellow)':'var(--melon)';
+    return`<tr>
+      <td style="font-weight:500">${esc(name)}</td>
+      <td style="font-family:'DM Mono',monospace">${count}</td>
+      <td><div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;min-width:60px;">
+          <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div>
+        </div>
+        <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text-light);min-width:30px;text-align:right">${pct}%</span>
+      </div></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('rpt-emp').innerHTML=empRows
+    ?`<table class="report-table"><thead><tr><th>Staff Member</th><th>Completions</th><th>Relative %</th></tr></thead><tbody>${empRows}</tbody></table>`
+    :'<div class="empty">No completions logged in this range.</div>';
+
+  // ── BY TASK ──
+  const byTask={};
+  log.forEach(e=>byTask[e.task]=(byTask[e.task]||0)+1);
+  const taskRows=Object.entries(byTask).sort((a,b)=>b[1]-a[1]).map(([task,count])=>`<tr>
+      <td>${esc(task)}</td>
+      <td style="font-family:'DM Mono',monospace">${count}</td>
+    </tr>`).join('');
+  document.getElementById('rpt-task').innerHTML=taskRows
+    ?`<table class="report-table"><thead><tr><th>Task</th><th>Times Completed</th></tr></thead><tbody>${taskRows}</tbody></table>`
+    :'<div class="empty">No completions logged in this range.</div>';
+
+  // ── FULL LOG ──
+  const logRows=[...log].reverse().slice(0,300).map(e=>`<tr>
+    <td style="font-family:'DM Mono',monospace;font-size:11px">${e.date}</td>
+    <td style="font-weight:500">${esc(e.employee)}</td>
+    <td>${esc(e.task)}</td>
+    <td style="font-size:11px;color:var(--text-light)">${esc(e.listType)}</td>
+  </tr>`).join('');
+  document.getElementById('rpt-log').innerHTML=logRows
+    ?`<table class="report-table"><thead><tr><th>Date</th><th>Employee</th><th>Task</th><th>List</th></tr></thead><tbody>${logRows}</tbody></table>`
+    :'<div class="empty">No completions logged in this range.</div>';
+}
+
+function exportCSV(){
+  const days=parseInt(document.getElementById('rpt-days').value,10)||30;
+  apiGet({action:'getChecklistLog',dept:DEPT,days}).then(data=>{
+    if(!data||!data.log){notif('No data to export.');return;}
+    const rows=[['Date','Employee','Task','List','Period'],...data.log.map(e=>[e.date,e.employee,e.task,e.listType,e.period])];
+    const csv=rows.map(r=>r.map(c=>`"${(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`FDR_Checklist_Last${days}Days_${todayStr()}.csv`;a.click();
+  });
+}
+
+// ─── STAFF SETTINGS ───────────────────────────────────────────
+async function loadStaffTable(){
+  document.getElementById('acuity-url-input').value=localStorage.getItem('fdr:acuityurl')||'';
+  const data=await apiGet({action:'getStaff'});
+  const staff=(data&&data.staff&&data.staff.length)?data.staff:STAFF;
+  if(!staff.length){document.getElementById('staff-table-wrap').innerHTML='<div class="empty">No staff found.</div>';return;}
+  const rows=staff.map(s=>`<tr>
+    <td style="font-weight:500">${esc(s.name)}</td>
+    <td>${s.role}</td>
+    <td>${s.dept}</td>
+    <td style="font-family:'DM Mono',monospace">****</td>
+    <td>${s.active===false||s.active==='No'?'<span style="color:var(--melon);font-size:11px;font-weight:700;">Inactive</span>':'<span style="color:var(--green-dark);font-size:11px;font-weight:700;">Active</span>'}</td>
+    <td><button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="deactivate('${esc(s.name)}')">Deactivate</button></td>
+  </tr>`).join('');
+  document.getElementById('staff-table-wrap').innerHTML=`<table class="staff-table"><thead><tr><th>Name</th><th>Role</th><th>Dept</th><th>PIN</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+async function addStaffMember(){
+  const name=document.getElementById('new-staff-name').value.trim();
+  const role=document.getElementById('new-staff-role').value;
+  const pin=document.getElementById('new-staff-pin').value.trim()||'1234';
+  if(!name)return;
+  await apiPost({action:'addStaff',name,role,dept:DEPT,pin});
+  ['new-staff-name','new-staff-pin'].forEach(id=>document.getElementById(id).value='');
+  notif(`${name} added — they can log in right away.`);
+  await loadStaffList();loadStaffTable();populatePinDropdown();populateAssignDropdown();
+}
+
+async function deactivate(name){
+  if(!confirm(`Deactivate ${name}? They will no longer be able to log in.`))return;
+  await apiPost({action:'deactivateStaff',name});
+  notif(`${name} deactivated.`);
+  await loadStaffList();loadStaffTable();populatePinDropdown();populateAssignDropdown();
+}
+
+function populateAssignDropdown(){
+  const sel=document.getElementById('assign-who');
+  sel.innerHTML='<option value="">— Select —</option><option value="ALL">Whole Team</option>';
+  STAFF.filter(s=>s.role==='fdr').forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;sel.appendChild(o);});
+}
+
+function populatePinDropdown(){
+  const sel=document.getElementById('pin-who');
+  sel.innerHTML='<option value="">— Select staff —</option>';
+  STAFF.forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;sel.appendChild(o);});
+}
+
+async function savePin(){
+  const who=document.getElementById('pin-who').value,pin=document.getElementById('pin-new').value.trim();
+  if(!who||!pin||pin.length<4)return;
+  await apiPost({action:'updatePin',name:who,pin});
+  document.getElementById('pin-new').value='';
+  const n=document.getElementById('pin-note');n.style.display='block';setTimeout(()=>n.style.display='none',3000);
+  notif(`PIN updated for ${who}.`);
+  await loadStaffList();
+}
+
+// ─── UTILS ────────────────────────────────────────────────────
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function notif(msg){const el=document.getElementById('notif');el.textContent=msg;el.style.display='block';setTimeout(()=>el.style.display='none',2800);}
+
+// ─── INIT ─────────────────────────────────────────────────────
+// Check if API URL is saved, prompt if not (supervisors only)
+window.addEventListener('load',()=>{
+  const saved=localStorage.getItem('atr:apiUrl');
+  if(!saved){
+    // Show a subtle prompt to set up API
+    console.log('No API URL configured. Go to Settings after logging in as supervisor to set it up.');
+  }
+  loadStaffList();
+});
+</script>
+</body>
+</html>
